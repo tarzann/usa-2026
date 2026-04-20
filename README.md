@@ -2,10 +2,13 @@
 
 מערכת חכמה לניהול טיול עם חוויית תצוגה עשירה: ציר ימים, מפת מסלול, פרטי יום מלאים, ו-AI Copilot שמבין את המסלול ועוזר ללטש אותו.
 
-הפרויקט כרגע בנוי כפרוטוטייפ פרונטאנד סטטי:
+הפרויקט כרגע בנוי כאפליקציית `Next.js`:
 
-- `index.html` כולל את כל ממשק המשתמש, העיצוב והלוגיקה בצד לקוח
-- `trip-data.json` הוא מקור הנתונים של המסלול
+- `src/app` כולל את ה-App Router
+- `src/components/trip-dashboard.tsx` כולל את ממשק המשתמש הראשי
+- `src/lib/trip.ts` כולל את הלוגיקה והמודל של המסלול
+- `src/app/api/chat/route.ts` מחבר את הצ'אט ל-OpenAI
+- `src/data/trip-data.json` הוא מקור הנתונים של המסלול
 
 ## מה יש במערכת
 
@@ -17,18 +20,31 @@
 
 ## איך מריצים
 
-אפשר לפתוח את `index.html` ישירות בדפדפן, אבל מומלץ להרים שרת מקומי כדי שה-`fetch` ל-`trip-data.json` יעבוד בצורה עקבית.
-
-דוגמה עם Python:
+הרצה מקומית:
 
 ```bash
 cd "/Users/ranmor/Documents/Trip Planner"
-python3 -m http.server 8080
+npm install
+npm run dev
 ```
 
 ואז לפתוח:
 
-[http://localhost:8080](http://localhost:8080)
+[http://localhost:3000](http://localhost:3000)
+
+## משתני סביבה
+
+צור קובץ `.env.local` מקומי או הגדר ב-Vercel:
+
+```bash
+OPENAI_API_KEY=your_api_key_here
+OPENAI_MODEL=gpt-5.4-mini
+```
+
+- `OPENAI_API_KEY` חובה כדי שהצ'אט יעבוד מול OpenAI
+- `OPENAI_MODEL` אופציונלי
+
+אם אין `OPENAI_API_KEY`, המערכת תחזור זמנית ל-fallback מקומי ותציג הערה טכנית בצ'אט.
 
 ## מבנה נתונים
 
@@ -99,7 +115,8 @@ python3 -m http.server 8080
 
 ## הערות
 
-- כרגע הצ'אט הוא לוגיקה מקומית בצד לקוח, לא LLM אמיתי
+- הצ'אט מחובר ל-OpenAI דרך `Responses API`
+- ברירת המחדל בקוד היא `gpt-5.4-mini`, וניתן לשנות דרך `OPENAI_MODEL`
 - המפה היא ויזואליזציה מותאמת אישית ולא שירות מפות חיצוני
 - הנתונים הקיימים עוברים סינון בסיסי כדי להתעלם מפריטים שמחוץ לטווח הטיול
 

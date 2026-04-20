@@ -60,11 +60,21 @@ export function TripDashboard({ days }: TripDashboardProps) {
           body: JSON.stringify({ prompt, selectedDay }),
         });
 
-        if (!response.ok) throw new Error("chat request failed");
-        const payload = (await response.json()) as { reply: string };
+        const payload = (await response.json()) as { error?: string; reply?: string; mode?: string };
+        if (!response.ok) {
+          throw new Error(payload.error || "chat request failed");
+        }
+
         setChatHistory((current) => [...current, { role: "assistant", body: payload.reply || fallback }]);
-      } catch {
-        setChatHistory((current) => [...current, { role: "assistant", body: fallback }]);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "chat request failed";
+        setChatHistory((current) => [
+          ...current,
+          {
+            role: "assistant",
+            body: `${fallback}\n\nהערה טכנית: כרגע לא התקבלה תשובה חיה מ-OpenAI (${message}). צריך לוודא ש-OPENAI_API_KEY מוגדר ב-Vercel.`,
+          },
+        ]);
       }
     });
   }
