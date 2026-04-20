@@ -423,6 +423,65 @@ a {
   padding-bottom: 18px;
 }
 
+.assistant-widget {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+  display: grid;
+  justify-items: end;
+  gap: 14px;
+}
+
+.floating-chat {
+  width: min(420px, calc(100vw - 28px));
+  max-height: min(720px, calc(100vh - 120px));
+  box-shadow: 0 26px 70px rgba(32, 23, 12, 0.2);
+  border: 1px solid rgba(99, 70, 33, 0.14);
+  background: rgba(255, 249, 242, 0.97);
+}
+
+.floating-chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.floating-chat-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(47, 38, 25, 0.08);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.assistant-launcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+  color: white;
+  box-shadow: 0 14px 30px rgba(12, 124, 116, 0.28);
+}
+
+.assistant-launcher-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  font-family: var(--font-space-grotesk), var(--font-assistant), sans-serif;
+  font-weight: 700;
+}
+
+.assistant-launcher-copy {
+  font-weight: 800;
+}
+
 .login-shell {
   min-height: 100vh;
   display: grid;
@@ -500,5 +559,21 @@ a {
 
   .num {
     font-size: 1.6rem;
+  }
+
+  .assistant-widget {
+    right: 14px;
+    left: 14px;
+    bottom: 14px;
+    justify-items: stretch;
+  }
+
+  .floating-chat {
+    width: 100%;
+    max-height: min(70vh, 620px);
+  }
+
+  .assistant-launcher {
+    justify-content: center;
   }
 }

@@ -32,6 +32,7 @@ const quickPrompts = [
 export function TripDashboard({ days }: TripDashboardProps) {
   const [selectedDate, setSelectedDate] = useState(days[0]?.date ?? "");
   const [chatInput, setChatInput] = useState("");
+  const [isChatOpen, setIsChatOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState<Message[]>([
     {
       role: "assistant",
@@ -199,53 +200,6 @@ export function TripDashboard({ days }: TripDashboardProps) {
               </div>
             </div>
           </section>
-
-          <section className="chat-card">
-            <div className="card-head">
-              <div>
-                <h3>Trip AI Copilot</h3>
-                <p>כאן כבר יש API route ראשון, כך שהמערכת מוכנה להחליף את ההיגיון המקומי במודל אמיתי בלי לשבור את ה-UI.</p>
-              </div>
-              <span className="badge">Next + API</span>
-            </div>
-            <div className="quick-prompts">
-              {quickPrompts.map((prompt) => (
-                <button key={prompt.title} type="button" className="prompt-btn" onClick={() => setChatInput(prompt.body)}>
-                  <strong>{prompt.title}</strong>
-                  <span>{prompt.body}</span>
-                </button>
-              ))}
-            </div>
-            <div className="chat-messages">
-              {chatHistory.map((message, index) => (
-                <div key={`${message.role}-${index}`} className={`message ${message.role}`}>
-                  <span className="message-role">{message.role === "user" ? "אתה" : "Trip AI"}</span>
-                  <div className="message-body">{message.body}</div>
-                </div>
-              ))}
-              {isPending ? (
-                <div className="message assistant">
-                  <span className="message-role">Trip AI</span>
-                  <div className="message-body">חושב על המסלול...</div>
-                </div>
-              ) : null}
-            </div>
-            <form
-              className="chat-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submitPrompt(chatInput);
-              }}
-            >
-              <textarea
-                className="chat-input"
-                value={chatInput}
-                onChange={(event) => setChatInput(event.target.value)}
-                placeholder="לדוגמה: מה חסר לי לסגור ליום הזה?"
-              />
-              <button className="chat-submit" type="submit">שלח</button>
-            </form>
-          </section>
         </div>
       </section>
 
@@ -338,6 +292,77 @@ export function TripDashboard({ days }: TripDashboardProps) {
       </section>
 
       <div className="footer-note">הגרסה הזו מוכנה כבסיס למוצר AI אמיתי: השלב הבא הוא חיבור ל-OpenAI, שמירת שיחות ועדכון המסלול מתוך הדיאלוג.</div>
+
+      <div className="assistant-widget">
+        {isChatOpen ? (
+          <section className="chat-card floating-chat">
+            <div className="card-head">
+              <div>
+                <h3>Trip AI Copilot</h3>
+                <p>העוזר זמין מכל מקום במסך, בלי לתפוס את אזור העבודה הראשי.</p>
+              </div>
+              <div className="floating-chat-actions">
+                <span className="badge">gpt-5.4-mini</span>
+                <button
+                  type="button"
+                  className="floating-chat-close"
+                  onClick={() => setIsChatOpen(false)}
+                  aria-label="סגור חלון צ'אט"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="quick-prompts">
+              {quickPrompts.map((prompt) => (
+                <button key={prompt.title} type="button" className="prompt-btn" onClick={() => setChatInput(prompt.body)}>
+                  <strong>{prompt.title}</strong>
+                  <span>{prompt.body}</span>
+                </button>
+              ))}
+            </div>
+            <div className="chat-messages">
+              {chatHistory.map((message, index) => (
+                <div key={`${message.role}-${index}`} className={`message ${message.role}`}>
+                  <span className="message-role">{message.role === "user" ? "אתה" : "Trip AI"}</span>
+                  <div className="message-body">{message.body}</div>
+                </div>
+              ))}
+              {isPending ? (
+                <div className="message assistant">
+                  <span className="message-role">Trip AI</span>
+                  <div className="message-body">חושב על המסלול...</div>
+                </div>
+              ) : null}
+            </div>
+            <form
+              className="chat-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitPrompt(chatInput);
+              }}
+            >
+              <textarea
+                className="chat-input"
+                value={chatInput}
+                onChange={(event) => setChatInput(event.target.value)}
+                placeholder="לדוגמה: מה חסר לי לסגור ליום הזה?"
+              />
+              <button className="chat-submit" type="submit">שלח</button>
+            </form>
+          </section>
+        ) : null}
+
+        <button
+          type="button"
+          className="assistant-launcher"
+          onClick={() => setIsChatOpen((current) => !current)}
+          aria-label={isChatOpen ? "מזער עוזר AI" : "פתח עוזר AI"}
+        >
+          <span className="assistant-launcher-icon">AI</span>
+          <span className="assistant-launcher-copy">{isChatOpen ? "מזער עוזר" : "Trip AI"}</span>
+        </button>
+      </div>
     </div>
   );
 }
