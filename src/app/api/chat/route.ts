@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { buildAiAnswer, buildTripDays, tripData, type TripDay } from "@/lib/trip";
 
-const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
+const MODEL = "gpt-5.4-mini";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { prompt?: string; selectedDay?: TripDay };

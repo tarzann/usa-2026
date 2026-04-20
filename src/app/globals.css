@@ -423,6 +423,49 @@ a {
   padding-bottom: 18px;
 }
 
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: min(100%, 520px);
+  padding: 28px;
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 18px;
+}
+
+.login-form {
+  display: grid;
+  gap: 12px;
+}
+
+.login-form label {
+  font-weight: 700;
+}
+
+.login-input {
+  min-height: 52px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(99, 70, 33, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.login-error {
+  color: #b42318;
+  background: rgba(180, 35, 24, 0.08);
+  border: 1px solid rgba(180, 35, 24, 0.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
 @media (max-width: 1180px) {
   .hero-grid,
   .workspace,

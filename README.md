@@ -38,11 +38,13 @@ npm run dev
 
 ```bash
 OPENAI_API_KEY=your_api_key_here
-OPENAI_MODEL=gpt-5.4-mini
+APP_AUTH_PASSWORD=your_access_password
+AUTH_SECRET=long_random_secret
 ```
 
 - `OPENAI_API_KEY` חובה כדי שהצ'אט יעבוד מול OpenAI
-- `OPENAI_MODEL` אופציונלי
+- `APP_AUTH_PASSWORD` אופציונלי אבל מומלץ. אם הוא מוגדר, הכניסה הראשונית לאפליקציה תדרוש התחברות.
+- `AUTH_SECRET` מומלץ כאשר מפעילים auth כדי לחתום את עוגיית ההתחברות.
 
 אם אין `OPENAI_API_KEY`, המערכת תחזור זמנית ל-fallback מקומי ותציג הערה טכנית בצ'אט.
 
@@ -116,7 +118,7 @@ OPENAI_MODEL=gpt-5.4-mini
 ## הערות
 
 - הצ'אט מחובר ל-OpenAI דרך `Responses API`
-- ברירת המחדל בקוד היא `gpt-5.4-mini`, וניתן לשנות דרך `OPENAI_MODEL`
+- המודל בקוד מוגדר במפורש ל-`gpt-5.4-mini`
 - המפה היא ויזואליזציה מותאמת אישית ולא שירות מפות חיצוני
 - הנתונים הקיימים עוברים סינון בסיסי כדי להתעלם מפריטים שמחוץ לטווח הטיול
 
