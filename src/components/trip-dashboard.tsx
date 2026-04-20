@@ -19,6 +19,7 @@ type Message = {
 
 type TripDashboardProps = {
   days: TripDay[];
+  googleMapsApiKey: string;
 };
 
 const RealTripMap = dynamic(
@@ -36,7 +37,7 @@ const quickPrompts = [
   { title: "תן המלצה ליום הזה", body: "מה כדאי לשפר ביום הנבחר?" },
 ];
 
-export function TripDashboard({ days }: TripDashboardProps) {
+export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const [selectedDate, setSelectedDate] = useState(days[0]?.date ?? "");
   const [chatInput, setChatInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -191,7 +192,7 @@ export function TripDashboard({ days }: TripDashboardProps) {
               </div>
               <span className="badge">{selectedDay.location.region}</span>
             </div>
-            <RealTripMap days={days} selectedDate={selectedDate} />
+            <RealTripMap apiKey={googleMapsApiKey} days={days} selectedDate={selectedDate} />
             <div className="map-note">
               <div className="mini-stat">
                 <div className="mini-stat-label">היום הנבחר</div>

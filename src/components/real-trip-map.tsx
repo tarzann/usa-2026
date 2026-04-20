@@ -1,84 +1,115 @@
 "use client";
 
 import { useEffect } from "react";
-import type { LatLngExpression, LatLngTuple } from "leaflet";
-import L from "leaflet";
-import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+import {
+  APIProvider,
+  AdvancedMarker,
+  Map,
+  Pin,
+  useMap,
+} from "@vis.gl/react-google-maps";
 import type { TripDay } from "@/lib/trip";
 
 type RealTripMapProps = {
+  apiKey: string;
   days: TripDay[];
   selectedDate: string;
 };
 
-const defaultCenter: LatLngTuple = [34.8, -78.2];
+const defaultCenter = { lat: 34.8, lng: -78.2 };
 
-export function RealTripMap({ days, selectedDate }: RealTripMapProps) {
-  const points = days.map((day) => [day.location.lat, day.location.lng] as LatLngTuple);
+export function RealTripMap({ apiKey, days, selectedDate }: RealTripMapProps) {
   const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
+
+  if (!apiKey) {
+    return <div className="map-frame map-loading">חסר GOOGLE_MAPS_API_KEY ולכן אי אפשר להציג את Google Maps.</div>;
+  }
 
   return (
     <div className="map-frame real-map-frame">
-      <MapContainer
-        center={defaultCenter}
-        zoom={5}
-        scrollWheelZoom
-        className="real-map"
-        attributionControl
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapViewport points={points} selected={selectedDay ? [selectedDay.location.lat, selectedDay.location.lng] : null} />
-        <Polyline positions={points} pathOptions={{ color: "#0c7c74", weight: 4, opacity: 0.72 }} />
-        {days.map((day) => {
-          const isSelected = day.date === selectedDate;
-          const position: LatLngExpression = [day.location.lat, day.location.lng];
-          return (
-            <Marker key={day.date} position={position} icon={buildMarkerIcon(day.dayNum, isSelected)}>
-              <Popup>
-                <strong>{day.title}</strong>
-                <br />
-                {day.location.name}
-                <br />
-                {day.summary}
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+      <APIProvider apiKey={apiKey}>
+        <Map
+          defaultCenter={defaultCenter}
+          defaultZoom={5}
+          gestureHandling="greedy"
+          disableDefaultUI={false}
+          mapId="trip-planner-map"
+          className="real-map"
+        >
+          <MapViewport days={days} selectedDate={selectedDate} />
+          <RoutePolyline days={days} />
+          {days.map((day) => {
+            const isSelected = day.date === selectedDate;
+
+            return (
+              <AdvancedMarker
+                key={day.date}
+                position={{ lat: day.location.lat, lng: day.location.lng }}
+                title={`${day.title} - ${day.location.name}`}
+              >
+                <Pin
+                  background={isSelected ? "#0c7c74" : "#d56f3e"}
+                  borderColor={isSelected ? "#095f59" : "#b8562a"}
+                  glyphColor="#ffffff"
+                  scale={isSelected ? 1.2 : 1}
+                >
+                  {String(day.dayNum)}
+                </Pin>
+              </AdvancedMarker>
+            );
+          })}
+          {selectedDay ? (
+            <AdvancedMarker position={{ lat: selectedDay.location.lat, lng: selectedDay.location.lng }} title={selectedDay.title}>
+              <div className="selected-map-label">
+                <strong>{selectedDay.title}</strong>
+                <span>{selectedDay.location.name}</span>
+              </div>
+            </AdvancedMarker>
+          ) : null}
+        </Map>
+      </APIProvider>
     </div>
   );
 }
 
-function MapViewport({ points, selected }: { points: LatLngTuple[]; selected: LatLngTuple | null }) {
+function MapViewport({ days, selectedDate }: { days: TripDay[]; selectedDate: string }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!points.length) return;
+    if (!map || !days.length || !window.google?.maps) return;
 
-    const bounds = L.latLngBounds(points);
-    map.fitBounds(bounds.pad(0.2), { animate: true });
+    const bounds = new window.google.maps.LatLngBounds();
+    days.forEach((day) => bounds.extend({ lat: day.location.lat, lng: day.location.lng }));
+    map.fitBounds(bounds, 64);
 
-    if (selected) {
-      map.panTo(selected, { animate: true });
+    const selectedDay = days.find((day) => day.date === selectedDate);
+    if (selectedDay) {
+      map.panTo({ lat: selectedDay.location.lat, lng: selectedDay.location.lng });
     }
-  }, [map, points, selected]);
+  }, [map, days, selectedDate]);
 
   return null;
 }
 
-function buildMarkerIcon(dayNum: number, isSelected: boolean) {
-  return L.divIcon({
-    className: "trip-map-marker-wrapper",
-    html: `
-      <div class="trip-map-marker ${isSelected ? "selected" : ""}">
-        <span>${dayNum}</span>
-      </div>
-    `,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-    popupAnchor: [0, -14],
-  });
+function RoutePolyline({ days }: { days: TripDay[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || !window.google?.maps) return;
+
+    const polyline = new window.google.maps.Polyline({
+      path: days.map((day) => ({ lat: day.location.lat, lng: day.location.lng })),
+      geodesic: true,
+      strokeColor: "#0c7c74",
+      strokeOpacity: 0.85,
+      strokeWeight: 4,
+      map,
+    });
+
+    return () => {
+      polyline.setMap(null);
+    };
+  }, [map, days]);
+
+  return null;
 }
