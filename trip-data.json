@@ -1,0 +1,295 @@
+{
+  "title": "טיול משפחתי לארה\"ב – קיץ 2026",
+  "participants": ["רן", "אורטל", "יובל", "עידו", "ינאי"],
+  "startDate": "2026-06-16",
+  "endDate": "2026-07-06",
+
+  "flights": [
+    {
+      "date": "2026-06-16",
+      "label": "✈️ הלוך",
+      "details": "TLV → ZRH → JFK | המראה 04:50 | נחיתה 12:50",
+      "booking": "7BWSN9"
+    },
+    {
+      "date": "2026-07-06",
+      "label": "✈️ חזרה",
+      "details": "MIA → FRA → TLV | המראה 16:40 | נחיתה 15:25 (+1)",
+      "booking": "7BWSN9"
+    }
+  ],
+
+  "segments": [
+    {
+      "id": "ny",
+      "label": "🗽 ניו יורק",
+      "color": "#81e6d9",
+      "bg": "#e6fffa",
+      "text": "#234e52",
+      "startDate": "2026-06-16",
+      "endDate": "2026-06-18"
+    },
+    {
+      "id": "dc",
+      "label": "🏛 וושינגטון DC",
+      "color": "#feb2b2",
+      "bg": "#fff5f5",
+      "text": "#742a2a",
+      "startDate": "2026-06-20",
+      "endDate": "2026-06-21"
+    },
+    {
+      "id": "road",
+      "label": "🚗 Road Trip",
+      "color": "#fbd38d",
+      "bg": "#fffbeb",
+      "text": "#744210",
+      "startDate": "2026-06-22",
+      "endDate": "2026-06-27"
+    },
+    {
+      "id": "appalachia",
+      "label": "🏔️ Appalachians & Smokies",
+      "color": "#9ae6b4",
+      "bg": "#f0fff4",
+      "text": "#22543d",
+      "startDate": "2026-05-05",
+      "endDate": "2026-05-09"
+    },
+    {
+      "id": "orlando",
+      "label": "🌴 אורלנדו/פלורידה",
+      "color": "#9ae6b4",
+      "bg": "#f0fff4",
+      "text": "#1c4532",
+      "startDate": "2026-06-28",
+      "endDate": "2026-07-05"
+    }
+  ],
+
+  "events": [
+    {
+      "date": "2026-05-05",
+      "emoji": "🏛️",
+      "label": "Asheville",
+      "details": "Biltmore Estate, classic old America vibe, and dinner in downtown Asheville with jazz night at Little Jumbo.",
+      "segmentId": "appalachia"
+    },
+    {
+      "date": "2026-05-06",
+      "emoji": "🌲",
+      "label": "Navitat & Pisgah",
+      "details": "Zipline adventure at Navitat Canopy Adventures, then a calmer afternoon in Pisgah National Forest with Looking Glass Falls.",
+      "segmentId": "appalachia"
+    },
+    {
+      "date": "2026-05-07",
+      "emoji": "🛣️",
+      "label": "Blue Ridge Parkway to Pigeon Forge",
+      "details": "Drive via the Blue Ridge Parkway, one of America’s most iconic scenic routes, and arrive in Pigeon Forge for a nostalgic 50s-style diner dinner.",
+      "segmentId": "appalachia"
+    },
+    {
+      "date": "2026-05-08",
+      "emoji": "🎢",
+      "label": "Mountain Coasters & Rafting",
+      "details": "Mountain coasters in the woods, then whitewater rafting on the Pigeon River.",
+      "segmentId": "appalachia"
+    },
+    {
+      "date": "2026-05-09",
+      "emoji": "🏞️",
+      "label": "UTV/ATV & Clingmans Dome",
+      "details": "Self-drive UTV/ATV forest adventure, then panoramic views from Clingmans Dome before continuing to the next destination.",
+      "segmentId": "appalachia"
+    },
+    {
+      "date": "2026-06-16",
+      "emoji": "🌆",
+      "label": "Times Square / Brooklyn Bridge",
+      "details": "נחיתה 12:50 JFK → מנהטן (מונית ~80$ / AirTrain+LIRR). ערב רגוע – Times Square או גשר ברוקלין",
+      "segmentId": "ny"
+    },
+    {
+      "date": "2026-06-17",
+      "emoji": "🗽",
+      "label": "Liberty & 9/11",
+      "details": "בוקר: Statue of Liberty & Ellis Island (להזמין מראש Pedestal/Crown) | צהריים: 9/11 Memorial & Museum | ערב: MJ The Musical 19:00 ✅",
+      "segmentId": "ny"
+    },
+    {
+      "date": "2026-06-17",
+      "emoji": "🎭",
+      "label": "MJ Broadway 19:00",
+      "details": "מופע \"MJ\" ברודווי, ניו יורק – 19:00",
+      "locked": true,
+      "segmentId": "ny"
+    },
+    {
+      "date": "2026-06-18",
+      "emoji": "🦕",
+      "label": "AMNH & Central Park",
+      "details": "בוקר: American Museum of Natural History | צהריים: Central Park – שייט באגם, Belvedere Castle | ערב: Top of the Rock / Edge תצפית",
+      "segmentId": "ny"
+    },
+    {
+      "date": "2026-06-19",
+      "emoji": "🚂",
+      "label": "NY → DC ברכבת",
+      "details": "בוקר: MoMA + שופינג | אחה\"צ: Amtrak Penn Station → Union Station DC (Acela ~2:50ש' / Regional ~3:20ש') | ערב: הגעה DC, צ'ק-אין, ארוחה קלה",
+      "segmentId": "dc"
+    },
+    {
+      "date": "2026-06-20",
+      "emoji": "🏛",
+      "label": "מונומנטים DC",
+      "details": "Lincoln, Vietnam, Korean, WWII Memorials | בית לבן – תמונה מבחוץ / טור דרך השגרירות",
+      "segmentId": "dc"
+    },
+    {
+      "date": "2026-06-21",
+      "emoji": "🚀",
+      "label": "Smithsonian & Georgetown",
+      "details": "Air & Space Museum (Timed Entry) | National Museum of American History / Spy Museum | אחה\"צ: Georgetown / Old Town Alexandria",
+      "segmentId": "dc"
+    },
+    {
+      "date": "2026-06-22",
+      "emoji": "🌊",
+      "label": "DC → Norfolk & Cape Charles",
+      "details": "בוקר: Fredericksburg/Richmond | צהריים: טיילת Norfolk – Nauticus, USS Wisconsin | אחה\"צ: Chesapeake Bay Bridge-Tunnel → Cape Charles לשקיעה | לינה: Virginia Beach (The Cavalier/Marriott) או Norfolk (Glass Light)",
+      "segmentId": "road"
+    },
+    {
+      "date": "2026-06-23",
+      "emoji": "⛵",
+      "label": "Outer Banks → Ocracoke → Beaufort",
+      "details": "Outer Banks + דיונות Jockey's Ridge | מעבורת Hatteras→Ocracoke (חינמית) – Howard's Pub | מעבורת מוזמנת Ocracoke→Cedar Island (2.25ש') | לינה: Beaufort Hotel / Bask Hotel ⚠️ להזמין ferry מראש",
+      "segmentId": "road"
+    },
+    {
+      "date": "2026-06-24",
+      "emoji": "🏰",
+      "label": "Crystal Coast → Charleston",
+      "details": "עצירות: Georgetown SC | Hunting Island – מגדלור + חוף פראי | Beaufort SC | הגעה לצ'רלסטון אחה\"צ | לינה: Emeline / Ryder / Restoration | Sunset ב-Battery | ארוחה: 167 Raw / Leon's",
+      "segmentId": "road"
+    },
+    {
+      "date": "2026-06-25",
+      "emoji": "🌴",
+      "label": "Charleston → Savannah → Orlando",
+      "details": "בוקר: Hilton Head (Coligny Beach) | צהריים: Savannah – Forsyth Park, The Grey Market | A1A: St. Simons + Amelia Island + Jacksonville Beach | אופציה: St. Augustine / Kennedy Space Center | הגעה לאורלנדו בערב",
+      "segmentId": "road"
+    },
+    {
+      "date": "2026-06-26",
+      "emoji": "🌊",
+      "label": "יום חוף / מנוחה",
+      "details": "Cocoa Beach או Clearwater Beach | מנוחה לפני הפארקים | ארוחת ערב ב-Disney Springs",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-06-27",
+      "emoji": "🏨",
+      "label": "הגעה + ביסוס אורלנדו",
+      "details": "צ'ק-אין, מנוחה, הכנה לפארקים | שופינג/סופר | ארוחת ערב ב-Disney Springs",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-06-28",
+      "emoji": "🏰",
+      "label": "Disney יום 1",
+      "details": "Magic Kingdom – Fantasyland, Tomorrowland, Space Mountain, Haunted Mansion, Fireworks בלילה",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-06-29",
+      "emoji": "🌍",
+      "label": "Disney יום 2",
+      "details": "EPCOT – World Showcase, Guardians of the Galaxy Cosmic Rewind, Remy's Ratatouille, Test Track",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-06-30",
+      "emoji": "🦁",
+      "label": "Disney יום 3",
+      "details": "Animal Kingdom – Avatar Flight of Passage, Kilimanjaro Safaris, Festival of the Lion King | אפשרות: Hollywood Studios (Rise of the Resistance)",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-07-01",
+      "emoji": "😴",
+      "label": "יום מנוחה",
+      "details": "בריכה, שופינג, Disney Springs | מנוחה בין Disney ל-Universal | ארוחה מיוחדת בערב",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-07-02",
+      "emoji": "🕷️",
+      "label": "Universal יום 1 – Epic Universe",
+      "details": "Epic Universe (פתח 2025!) – Wizarding World of Harry Potter (Ministry of Magic), How to Train Your Dragon, Nintendo World",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-07-03",
+      "emoji": "🦸",
+      "label": "Universal יום 2 – Islands of Adventure",
+      "details": "Islands of Adventure – Hagrid's Motorbike, Amazing Adventures of Spider-Man, Jurassic World | Universal Studios – Despicable Me, Hollywood Rip Ride Rockit",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-07-04",
+      "emoji": "🇺🇸",
+      "label": "4th of July!",
+      "details": "יום עצמאות ארה\"ב – זיקוקים ב-Magic Kingdom (הטובים בעולם!) או Epcot | אפשרות: יום חוף / ים / בריכה + ערב בפארק",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-07-05",
+      "emoji": "🚀",
+      "label": "Kennedy Space Center",
+      "details": "Kennedy Space Center Visitor Complex – Atlantis Space Shuttle, Saturn V Rocket, Astronaut training simulators",
+      "segmentId": "orlando"
+    },
+    {
+      "date": "2026-07-05",
+      "emoji": "🧳",
+      "label": "Pack & Miami",
+      "details": "ערב: אריזה + נסיעה ל-Miami לקראת טיסה ב-6/7",
+      "segmentId": "orlando"
+    }
+  ],
+
+  "hotels": [
+    {
+      "name": "LIC Manhattan View Hotel",
+      "location": "Queens, NY",
+      "checkIn": "2026-06-16",
+      "checkOut": "2026-06-19",
+      "address": "39-05 29th Street, Long Island City, Queens, NY 11101",
+      "phone": "+1 718-786-0000",
+      "confirmation": "5433840246"
+    }
+  ],
+
+  "todos": [
+    { "text": "NY – להזמין Statue of Liberty (Pedestal/Crown)", "done": false },
+    { "text": "NY – להזמין 9/11 Memorial & Museum (Timed Entry)", "done": false },
+    { "text": "NY – להזמין MoMA", "done": false },
+    { "text": "NY – לבחור Pass (CityPASS / GoCity)", "done": false },
+    { "text": "Amtrak NY→DC – להבטיח כרטיסים מוקדם", "done": false },
+    { "text": "DC – לינות (National Mall / Downtown)", "done": false },
+    { "text": "DC – Air & Space Timed Entry", "done": false },
+    { "text": "DC – טור קונגרס / White House (דרך השגרירות)", "done": false },
+    { "text": "Road Trip – לינה יום 1: Virginia Beach / Norfolk", "done": false },
+    { "text": "Road Trip – להזמין מעבורת Ocracoke→Cedar Island מראש", "done": false },
+    { "text": "Road Trip – לינה יום 2: Beaufort Hotel / Bask Hotel", "done": false },
+    { "text": "Road Trip – לינה יום 3: צ'רלסטון (Emeline / Ryder / Restoration)", "done": false },
+    { "text": "לינות אורלנדו/פלורידה", "done": false },
+    { "text": "Disney – כרטיסים ל-3 ימים + Park Hopper?", "done": false },
+    { "text": "Disney – להזמין Genie+ / Lightning Lane מראש", "done": false },
+    { "text": "Universal – כרטיסים ל-2 ימים (Epic Universe 2025 פתוח!)", "done": false },
+    { "text": "Kennedy Space Center – כרטיסים + Launch viewing?", "done": false },
+    { "text": "השכרת רכב", "done": false }
+  ]
+}

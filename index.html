@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trip Planner AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+:root {
+  --bg: #f6efe3;
+  --bg-soft: #fffaf2;
+  --panel: rgba(255, 250, 244, 0.88);
+  --panel-strong: rgba(255, 248, 238, 0.96);
+  --stroke: rgba(99, 70, 33, 0.12);
+  --stroke-strong: rgba(99, 70, 33, 0.2);
+  --text: #2f2619;
+  --muted: #7a6a55;
+  --brand: #0c7c74;
+  --brand-strong: #095f59;
+  --accent: #d56f3e;
+  --accent-soft: #f3d5c3;
+  --success: #37795d;
+  --shadow: 0 18px 48px rgba(66, 44, 15, 0.12);
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+  --radius-md: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Assistant", Arial, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(12, 124, 116, 0.16), transparent 32%),
+    radial-gradient(circle at top right, rgba(213, 111, 62, 0.18), transparent 24%),
+    linear-gradient(180deg, #fff8ed 0%, var(--bg) 54%, #f2eadf 100%);
+  min-height: 100vh;
+  padding: 24px;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+}
+
+.shell {
+  max-width: 1480px;
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 32px;
+  padding: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 248, 239, 0.96), rgba(248, 240, 229, 0.86)),
+    linear-gradient(135deg, rgba(12, 124, 116, 0.12), rgba(213, 111, 62, 0.08));
+  border: 1px solid rgba(99, 70, 33, 0.08);
+  box-shadow: var(--shadow);
+}
+
+.hero::before,
+.hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.hero::before {
+  width: 260px;
+  height: 260px;
+  background: rgba(12, 124, 116, 0.08);
+  top: -110px;
+  left: -70px;
+}
+
+.hero::after {
+  width: 220px;
+  height: 220px;
+  background: rgba(213, 111, 62, 0.08);
+  bottom: -100px;
+  right: -40px;
+}
+
+.hero-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(340px, 0.9fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.eyebrow {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(12, 124, 116, 0.1);
+  color: var(--brand-strong);
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.hero h1 {
+  font-family: "Space Grotesk", "Assistant", sans-serif;
+  font-size: clamp(2rem, 4vw, 3.9rem);
+  line-height: 0.95;
+  margin-bottom: 14px;
+  letter-spacing: -0.04em;
+}
+
+.hero p.lead {
+  max-width: 760px;
+  font-size: 1.08rem;
+  line-height: 1.65;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-card,
+.vision-card,
+.panel,
+.detail-grid > *,
+.day-card,
+.chip,
+.chat-card,
+.map-card,
+.timeline-card {
+  backdrop-filter: blur(12px);
+}
+
+.stat-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.82);
+  border: 1px solid rgba(99, 70, 33, 0.08);
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.vision-card {
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(45, 33, 19, 0.95);
+  color: #fff7f1;
+  min-height: 100%;
+  display: grid;
+  gap: 14px;
+}
+
+.vision-card h2 {
+  font-family: "Space Grotesk", "Assistant", sans-serif;
+  font-size: 1.2rem;
+}
+
+.vision-card p {
+  color: rgba(255, 247, 241, 0.74);
+  line-height: 1.6;
+}
+
+.vision-list {
+  display: grid;
+  gap: 10px;
+}
+
+.vision-item {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vision-item strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(330px, 0.95fr) minmax(360px, 1.05fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.timeline-card,
+.map-card,
+.chat-card,
+.detail-card,
+.logistics-card,
+.tasks-card {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+}
+
+.timeline-card,
+.map-card,
+.chat-card {
+  padding: 20px;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.card-head h3 {
+  font-family: "Space Grotesk", "Assistant", sans-serif;
+  font-size: 1.18rem;
+}
+
+.card-head p {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(12, 124, 116, 0.1);
+  color: var(--brand-strong);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 10px;
+  max-height: 900px;
+  overflow: auto;
+  padding-left: 4px;
+}
+
+.day-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 14px;
+  text-align: right;
+  width: 100%;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid transparent;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.day-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(66, 44, 15, 0.08);
+  border-color: rgba(12, 124, 116, 0.16);
+}
+
+.day-card.active {
+  border-color: rgba(12, 124, 116, 0.38);
+  box-shadow: 0 20px 36px rgba(12, 124, 116, 0.16);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.day-date {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  padding-top: 4px;
+}
+
+.day-date .num {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 0.95;
+}
+
+.day-date .month,
+.day-date .dow {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.day-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.segment-pill {
+  justify-self: start;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.day-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.day-meta,
+.day-preview {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.day-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(47, 38, 25, 0.06);
+  color: var(--text);
+  font-size: 0.77rem;
+  font-weight: 700;
+}
+
+.map-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.map-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(12, 124, 116, 0.16), transparent 22%),
+    radial-gradient(circle at 80% 72%, rgba(213, 111, 62, 0.18), transparent 18%),
+    linear-gradient(180deg, #fbf5ec 0%, #f0e7da 100%);
+  min-height: 420px;
+  border: 1px solid rgba(99, 70, 33, 0.08);
+}
+
+.map-frame svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.map-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mini-stat {
+  flex: 1;
+  min-width: 140px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(99, 70, 33, 0.08);
+  border-radius: 18px;
+  padding: 12px 14px;
+}
+
+.mini-stat-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 5px;
+}
+
+.mini-stat-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.8fr);
+  gap: 18px;
+}
+
+.detail-card,
+.logistics-card,
+.tasks-card {
+  padding: 22px;
+}
+
+.detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.detail-header h2 {
+  font-family: "Space Grotesk", "Assistant", sans-serif;
+  font-size: clamp(1.55rem, 3vw, 2.3rem);
+  margin-bottom: 6px;
+}
+
+.detail-header p {
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 720px;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.action-btn {
+  background: rgba(12, 124, 116, 0.1);
+  color: var(--brand-strong);
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.section-title {
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.event-list,
+.logistics-list,
+.task-list,
+.quick-prompts,
+.chat-messages {
+  display: grid;
+  gap: 12px;
+}
+
+.event-card,
+.logistics-item,
+.task-item,
+.message {
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(99, 70, 33, 0.08);
+}
+
+.event-title,
+.logistics-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 800;
+}
+
+.event-body,
+.logistics-body,
+.task-copy {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.task-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.task-status {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-top: 5px;
+  background: var(--accent);
+}
+
+.task-item.done .task-status {
+  background: var(--success);
+}
+
+.task-item.done .task-copy {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.chat-card {
+  display: grid;
+  gap: 14px;
+}
+
+.quick-prompts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.prompt-btn {
+  text-align: right;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--text);
+  border: 1px solid rgba(99, 70, 33, 0.08);
+}
+
+.prompt-btn strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.chat-messages {
+  max-height: 330px;
+  overflow: auto;
+}
+
+.message.user {
+  background: rgba(12, 124, 116, 0.1);
+  border-color: rgba(12, 124, 116, 0.14);
+}
+
+.message.assistant {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.message-role {
+  display: inline-flex;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--brand-strong);
+}
+
+.message-body {
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.chat-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.chat-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 54px;
+  max-height: 140px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(99, 70, 33, 0.12);
+  color: var(--text);
+}
+
+.chat-submit {
+  min-width: 118px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+  color: white;
+  font-weight: 800;
+  padding: 0 18px;
+}
+
+.footer-note {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 4px 0 20px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (max-width: 1180px) {
+  .hero-grid,
+  .workspace,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-list {
+    max-height: 540px;
+  }
+
+  .map-frame {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    padding: 14px;
+  }
+
+  .hero,
+  .timeline-card,
+  .map-card,
+  .chat-card,
+  .detail-card,
+  .logistics-card,
+  .tasks-card {
+    border-radius: 22px;
+    padding: 18px;
+  }
+
+  .hero-stats,
+  .quick-prompts,
+  .chat-form {
+    grid-template-columns: 1fr;
+  }
+
+  .day-card {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .day-date .num {
+    font-size: 1.6rem;
+  }
+}
+</style>
+</head>
+<body>
+<div id="app" class="shell">טוען...</div>
+
+<script>
+const MONTH_NAMES = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+const DOW_NAMES = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'שבת'];
+const MAP_BOUNDS = { minLat: 25.6, maxLat: 41.3, minLng: -81.7, maxLng: -72.6 };
+
+const LOCATION_LOOKUP = {
+  ny: { name: 'ניו יורק', lat: 40.7128, lng: -74.006, region: 'Northeast' },
+  dc: { name: 'וושינגטון DC', lat: 38.9072, lng: -77.0369, region: 'Capital' },
+  road: { name: 'הכביש המזרחי', lat: 35.7, lng: -77.6, region: 'Road Trip' },
+  orlando: { name: 'אורלנדו', lat: 28.5383, lng: -81.3792, region: 'Florida' },
+  appalachia: { name: 'Appalachia', lat: 35.5951, lng: -82.5515, region: 'Mountains' },
+  norfolk: { name: 'Norfolk', lat: 36.8508, lng: -76.2859, region: 'Virginia' },
+  outer_banks: { name: 'Outer Banks', lat: 35.5582, lng: -75.4665, region: 'North Carolina' },
+  beaufort: { name: 'Beaufort', lat: 34.7182, lng: -76.6638, region: 'North Carolina' },
+  charleston: { name: 'Charleston', lat: 32.7765, lng: -79.9311, region: 'South Carolina' },
+  savannah: { name: 'Savannah', lat: 32.0809, lng: -81.0912, region: 'Georgia' },
+  kennedy: { name: 'Kennedy Space Center', lat: 28.5729, lng: -80.649, region: 'Florida' },
+  miami: { name: 'Miami', lat: 25.7617, lng: -80.1918, region: 'Florida' }
+};
+
+let tripData = null;
+let tripDays = [];
+let selectedDate = null;
+let chatHistory = [];
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+async function loadData() {
+  const response = await fetch('trip-data.json?v=' + Date.now());
+  return response.json();
+}
+
+function formatDate(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return `${day} ${MONTH_NAMES[month - 1]} ${year}`;
+}
+
+function formatShortDate(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+}
+
+function getDayName(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return DOW_NAMES[new Date(year, month - 1, day).getDay()];
+}
+
+function dateRange(start, end) {
+  const dates = [];
+  const [sy, sm, sd] = start.split('-').map(Number);
+  const [ey, em, ed] = end.split('-').map(Number);
+  const current = new Date(sy, sm - 1, sd);
+  const last = new Date(ey, em - 1, ed);
+
+  while (current <= last) {
+    dates.push([
+      current.getFullYear(),
+      String(current.getMonth() + 1).padStart(2, '0'),
+      String(current.getDate()).padStart(2, '0')
+    ].join('-'));
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dates;
+}
+
+function isDateInTrip(dateStr, data) {
+  return dateStr >= data.startDate && dateStr <= data.endDate;
+}
+
+function getEventsForDate(dateStr) {
+  return tripData.events.filter(event => event.date === dateStr);
+}
+
+function getFlightsForDate(dateStr) {
+  return tripData.flights.filter(flight => flight.date === dateStr);
+}
+
+function getHotelsForDate(dateStr) {
+  return (tripData.hotels || []).filter(hotel => hotel.checkIn <= dateStr && hotel.checkOut > dateStr);
+}
+
+function getSegmentById(segmentId) {
+  return tripData.segments.find(segment => segment.id === segmentId) || null;
+}
+
+function getSegmentForDate(dateStr) {
+  const fromEvents = getEventsForDate(dateStr).find(event => event.segmentId);
+  if (fromEvents) {
+    return getSegmentById(fromEvents.segmentId);
+  }
+
+  return tripData.segments.find(segment =>
+    isDateInTrip(segment.startDate, tripData) &&
+    isDateInTrip(segment.endDate, tripData) &&
+    dateStr >= segment.startDate &&
+    dateStr <= segment.endDate
+  ) || null;
+}
+
+function getDayLocation(day) {
+  const title = `${day.title} ${day.summary}`.toLowerCase();
+  if (title.includes('kennedy')) return LOCATION_LOOKUP.kennedy;
+  if (title.includes('miami')) return LOCATION_LOOKUP.miami;
+  if (title.includes('norfolk') || title.includes('cape charles')) return LOCATION_LOOKUP.norfolk;
+  if (title.includes('outer banks') || title.includes('ocracoke')) return LOCATION_LOOKUP.outer_banks;
+  if (title.includes('beaufort')) return LOCATION_LOOKUP.beaufort;
+  if (title.includes('charleston')) return LOCATION_LOOKUP.charleston;
+  if (title.includes('savannah')) return LOCATION_LOOKUP.savannah;
+  if (day.segment && LOCATION_LOOKUP[day.segment.id]) return LOCATION_LOOKUP[day.segment.id];
+  return LOCATION_LOOKUP.orlando;
+}
+
+function buildDayTitle(dateStr, flights, events, segment) {
+  if (flights.length > 0) {
+    if (dateStr === tripData.startDate) return 'טיסה מתל אביב לניו יורק';
+    if (dateStr === tripData.endDate) return 'טיסת חזרה ממיאמי לתל אביב';
+    return flights[0].label;
+  }
+
+  if (events.length > 0) return events[0].label;
+  if (segment) return `יום ב${segment.label.replace(/^[^\s]+\s*/, '')}`;
+  return 'יום חופשי לתכנון';
+}
+
+function buildDaySummary(flights, events, hotels) {
+  if (flights.length > 0) return flights[0].details.replace(/\s*\|\s*/g, ' · ');
+  if (events.length > 0) return events.map(event => event.details.split('|')[0].trim()).join(' · ');
+  if (hotels.length > 0) return `יום רגוע באזור ${hotels[0].location} עם לינה ב-${hotels[0].name}.`;
+  return 'אין עדיין תכנון קשיח ליום הזה, וזה מקום טוב ל-AI להציע אופטימיזציה.';
+}
+
+function detectTravelMode(title, summary) {
+  const text = `${title} ${summary}`;
+  if (text.includes('טיסה') || text.includes('JFK') || text.includes('MIA')) return 'טיסה';
+  if (text.includes('רכבת') || text.includes('Amtrak')) return 'רכבת';
+  if (text.includes('Drive') || text.includes('Road') || text.includes('נסיעה') || text.includes('מעבורת')) return 'רכב / דרך';
+  return 'יום יעד';
+}
+
+function buildTripDays() {
+  return dateRange(tripData.startDate, tripData.endDate).map((dateStr, index) => {
+    const flights = getFlightsForDate(dateStr);
+    const events = getEventsForDate(dateStr);
+    const hotels = getHotelsForDate(dateStr);
+    const segment = getSegmentForDate(dateStr);
+    const title = buildDayTitle(dateStr, flights, events, segment);
+    const summary = buildDaySummary(flights, events, hotels);
+    const location = getDayLocation({ title, summary, segment });
+    const pendingTodos = (tripData.todos || []).filter(todo => {
+      const segmentName = segment ? segment.label.replace(/^[^\s]+\s*/, '').toLowerCase() : '';
+      const titleText = title.toLowerCase();
+      const summaryText = summary.toLowerCase();
+      const todoText = todo.text.toLowerCase();
+      return !todo.done && (
+        todoText.includes(segmentName) ||
+        (segment && todoText.includes(segment.id.toLowerCase())) ||
+        todoText.includes(titleText.split(' ')[0]) ||
+        summaryText.includes('disney') && todoText.includes('disney') ||
+        summaryText.includes('universal') && todoText.includes('universal')
+      );
+    }).slice(0, 4);
+
+    return {
+      index,
+      date: dateStr,
+      dayName: getDayName(dateStr),
+      shortDate: formatShortDate(dateStr),
+      monthLabel: MONTH_NAMES[Number(dateStr.slice(5, 7)) - 1],
+      dayNum: Number(dateStr.slice(8, 10)),
+      title,
+      summary,
+      flights,
+      events,
+      hotels,
+      segment,
+      location,
+      pendingTodos,
+      travelMode: detectTravelMode(title, summary)
+    };
+  });
+}
+
+function getSelectedDay() {
+  return tripDays.find(day => day.date === selectedDate) || tripDays[0];
+}
+
+function countTransportDays() {
+  return tripDays.filter(day => day.travelMode !== 'יום יעד').length;
+}
+
+function countLockedItems() {
+  const lockedEvents = tripData.events.filter(event => event.locked).length;
+  return tripData.flights.length + (tripData.hotels || []).length + lockedEvents;
+}
+
+function getProgressRatio() {
+  const todos = tripData.todos || [];
+  if (!todos.length) return 1;
+  return todos.filter(todo => todo.done).length / todos.length;
+}
+
+function renderHero() {
+  const progress = Math.round(getProgressRatio() * 100);
+  return `
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">Trip OS Vision • מערכת AI לתכנון טיול</span>
+          <h1>הטיול שלך הופך ממסמך סטטי למערכת חיה, חכמה וויזואלית.</h1>
+          <p class="lead">
+            בנינו כאן גרסת מוצר ראשונה: המשתמש מדבר עם AI, בונה את הימים שלו, ורואה בזמן אמת ציר תאריכים ברור,
+            מפה שמספרת איפה כל יום קורה, ופרטי יום עמוקים שמרכזים לוגיסטיקה, הזמנות, משימות והמלצות.
+          </p>
+          <div class="hero-stats">
+            <div class="stat-card">
+              <div class="stat-label">ימי טיול</div>
+              <div class="stat-value">${tripDays.length}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">ימים לוגיסטיים / מעבר</div>
+              <div class="stat-value">${countTransportDays()}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">רמת סגירה נוכחית</div>
+              <div class="stat-value">${progress}%</div>
+            </div>
+          </div>
+        </div>
+        <aside class="vision-card">
+          <h2>האיפיון שכבר מגולם במסך</h2>
+          <p>זהו דשבורד מוצרי, לא רק עמוד טיול. הוא מכין אותנו לשלב הבא: חיבור ל-LLM, המלצות חיות, ואוטומציה של בניית מסלול.</p>
+          <div class="vision-list">
+            <div class="vision-item">
+              <strong>Timeline כמקור אמת</strong>
+              כל יום מקבל כרטיס עם כותרת ראשית, תקציר, מצב לוגיסטי ומיקום.
+            </div>
+            <div class="vision-item">
+              <strong>Map as Storytelling</strong>
+              המפה מציגה את נתיב הטיול, נקודת היום הנבחר, והקשר בין ימים עוקבים.
+            </div>
+            <div class="vision-item">
+              <strong>AI Copilot</strong>
+              הצ'אט יודע לענות על שאלות תפעוליות, לאתר פערים ולהציע את הצעד הבא במסלול.
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  `;
+}
+
+function renderTimeline() {
+  return `
+    <section class="timeline-card">
+      <div class="card-head">
+        <div>
+          <h3>ציר ימי הטיול</h3>
+          <p>העמודה הזו היא עמוד השדרה של החוויה: כותרת חזקה לכל יום, סטטוס תכנוני מהיר, וסלקטור אחד שמניע את שאר המסך.</p>
+        </div>
+        <span class="badge">${tripDays.length} ימים</span>
+      </div>
+      <div class="timeline-list">
+        ${tripDays.map(day => {
+          const isActive = day.date === selectedDate;
+          const segment = day.segment;
+          const preview = day.events[0] ? day.events[0].details.split('|')[0].trim() : day.summary;
+          return `
+            <button class="day-card ${isActive ? 'active' : ''}" type="button" onclick="selectDay('${day.date}')">
+              <div class="day-date">
+                <div class="num">${day.dayNum}</div>
+                <div class="month">${escapeHtml(day.monthLabel)}</div>
+                <div class="dow">${escapeHtml(day.dayName.replace('יום ', ''))}</div>
+              </div>
+              <div class="day-summary">
+                ${segment ? `<span class="segment-pill" style="background:${segment.bg}; color:${segment.text};">${escapeHtml(segment.label)}</span>` : ''}
+                <div class="day-title">${escapeHtml(day.title)}</div>
+                <div class="day-meta">${escapeHtml(day.location.name)} · ${escapeHtml(day.travelMode)}</div>
+                <div class="day-preview">${escapeHtml(preview)}</div>
+                <div class="day-flags">
+                  ${day.flights.length ? '<span class="chip">טיסה</span>' : ''}
+                  ${day.hotels.length ? '<span class="chip">לינה פעילה</span>' : ''}
+                  ${day.pendingTodos.length ? `<span class="chip">${day.pendingTodos.length} משימות פתוחות</span>` : '<span class="chip">ללא פערים מיידיים</span>'}
+                </div>
+              </div>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function projectPoint(location) {
+  const x = ((location.lng - MAP_BOUNDS.minLng) / (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) * 100;
+  const y = 100 - ((location.lat - MAP_BOUNDS.minLat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * 100;
+  return { x, y };
+}
+
+function renderMap() {
+  const polyline = tripDays.map(day => {
+    const point = projectPoint(day.location);
+    return `${point.x},${point.y}`;
+  }).join(' ');
+  const selectedDay = getSelectedDay();
+  const nextDay = tripDays[selectedDay.index + 1];
+
+  return `
+    <section class="map-card">
+      <div class="card-head">
+        <div>
+          <h3>מפת הסיפור של הטיול</h3>
+          <p>המסך הימני מספר איפה כל יום קורה. בגרסה הבאה אפשר לחבר כאן Google Maps / Mapbox ולתמוך ב-routing, POI והצעות AI גיאוגרפיות.</p>
+        </div>
+        <span class="badge">${escapeHtml(selectedDay.location.region)}</span>
+      </div>
+      <div class="map-layout">
+        <div class="map-frame">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-labelledby="map-title">
+            <title id="map-title">מפת ימי הטיול</title>
+            <defs>
+              <linearGradient id="routeGradient" x1="0" x2="1">
+                <stop offset="0%" stop-color="#0c7c74" />
+                <stop offset="100%" stop-color="#d56f3e" />
+              </linearGradient>
+            </defs>
+            <path d="M76 8 C69 15, 66 23, 64 30 C62 38, 63 49, 58 55 C53 61, 47 70, 45 79 C43 85, 44 93, 49 96 L100 96 L100 0 L82 0 C80 2, 79 4, 76 8 Z"
+              fill="rgba(255,255,255,0.55)" stroke="rgba(99,70,33,0.12)" stroke-width="0.4"></path>
+            <path d="M63 28 C66 35, 67 44, 63 52 C60 58, 55 65, 51 71 C47 77, 46 84, 49 92"
+              fill="none" stroke="rgba(99,70,33,0.14)" stroke-width="0.8" stroke-dasharray="1.5 2.5"></path>
+            <polyline points="${polyline}" fill="none" stroke="url(#routeGradient)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            ${tripDays.map(day => {
+              const point = projectPoint(day.location);
+              const selected = day.date === selectedDate;
+              return `
+                <g>
+                  ${selected ? `<circle cx="${point.x}" cy="${point.y}" r="3.8" fill="rgba(12,124,116,0.14)"></circle>` : ''}
+                  <circle cx="${point.x}" cy="${point.y}" r="${selected ? '2.2' : '1.25'}" fill="${selected ? '#0c7c74' : '#d56f3e'}"></circle>
+                  ${selected ? `<text x="${Math.min(point.x + 2.6, 90)}" y="${Math.max(point.y - 2.2, 6)}" font-size="3.2" font-family="Assistant" fill="#2f2619">${escapeHtml(day.dayNum)}</text>` : ''}
+                </g>
+              `;
+            }).join('')}
+          </svg>
+        </div>
+        <div class="map-note">
+          <div class="mini-stat">
+            <div class="mini-stat-label">היום הנבחר</div>
+            <div class="mini-stat-value">${escapeHtml(selectedDay.location.name)}</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-label">מחר במסלול</div>
+            <div class="mini-stat-value">${escapeHtml(nextDay ? nextDay.location.name : 'סיום הטיול')}</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-label">פריטים נעולים</div>
+            <div class="mini-stat-value">${countLockedItems()}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderEventList(day) {
+  if (!day.flights.length && !day.events.length) {
+    return `
+      <div class="event-card">
+        <div class="event-title"><span>יום פתוח</span><span>AI Opportunity</span></div>
+        <div class="event-body">אין עדיין תוכן קשיח ליום הזה. זה בדיוק המקום שבו עוזר AI יכול להציע אטרקציות, מסלולים או קיצורי דרך.</div>
+      </div>
+    `;
+  }
+
+  const flightCards = day.flights.map(flight => `
+    <div class="event-card">
+      <div class="event-title"><span>✈️ ${escapeHtml(flight.label)}</span><span>${escapeHtml(day.travelMode)}</span></div>
+      <div class="event-body">${escapeHtml(flight.details.replace(/\s*\|\s*/g, ' · '))}</div>
+    </div>
+  `).join('');
+
+  const eventCards = day.events.map(event => `
+    <div class="event-card">
+      <div class="event-title"><span>${escapeHtml(event.emoji)} ${escapeHtml(event.label)}</span><span>${event.locked ? 'נעול' : 'גמיש'}</span></div>
+      <div class="event-body">${escapeHtml(event.details.replace(/\s*\|\s*/g, ' · '))}</div>
+    </div>
+  `).join('');
+
+  return flightCards + eventCards;
+}
+
+function renderLogistics(day) {
+  const hotelHtml = day.hotels.length ? day.hotels.map(hotel => `
+    <div class="logistics-item">
+      <div class="logistics-title"><span>לינה</span><span>${escapeHtml(hotel.location)}</span></div>
+      <div class="logistics-body">${escapeHtml(hotel.name)}<br>${escapeHtml(hotel.address)}<br>אישור: ${escapeHtml(hotel.confirmation)}</div>
+    </div>
+  `).join('') : `
+    <div class="logistics-item">
+      <div class="logistics-title"><span>לינה</span><span>פתוח</span></div>
+      <div class="logistics-body">לא נמצאה לינה משויכת ליום הזה. זו נקודת מעקב טובה לסגירה.</div>
+    </div>
+  `;
+
+  const nextDay = tripDays[day.index + 1];
+  const transportHint = nextDay ? `${day.location.name} → ${nextDay.location.name}` : 'סיום מסלול';
+
+  return `
+    <aside class="logistics-card">
+      <div class="card-head">
+        <div>
+          <h3>לוגיסטיקה חכמה</h3>
+          <p>כאן אמורים להופיע בהמשך זמני נסיעה, check-in/out, חניות, מסמכים והתרעות.</p>
+        </div>
+      </div>
+      <div class="logistics-list">
+        <div class="logistics-item">
+          <div class="logistics-title"><span>צעד הבא במסלול</span><span>${escapeHtml(day.travelMode)}</span></div>
+          <div class="logistics-body">${escapeHtml(transportHint)}</div>
+        </div>
+        ${hotelHtml}
+        <div class="logistics-item">
+          <div class="logistics-title"><span>הזמנות נעולות</span><span>${day.events.some(event => event.locked) ? 'יש' : 'אין'}</span></div>
+          <div class="logistics-body">${day.events.some(event => event.locked) ? 'היום כולל פריט נעול ולכן עדיף לבנות סביבו את שאר הפעילויות.' : 'אפשר עדיין לשנות את היום בלי לגרום לשרשרת שינויי הזמנות.'}</div>
+        </div>
+      </div>
+    </aside>
+  `;
+}
+
+function renderTasks(day) {
+  const tasks = day.pendingTodos.length ? day.pendingTodos : (tripData.todos || []).filter(todo => !todo.done).slice(0, 4);
+  return `
+    <aside class="tasks-card">
+      <div class="card-head">
+        <div>
+          <h3>מה פתוח לסגירה</h3>
+          <p>המערכת מאתרת משימות רלוונטיות ליום הנבחר, ובאין התאמה מציגה את המשימות הדחופות הכלליות.</p>
+        </div>
+        <span class="badge">${tasks.length} פריטים</span>
+      </div>
+      <div class="task-list">
+        ${tasks.map(task => `
+          <div class="task-item ${task.done ? 'done' : ''}">
+            <span class="task-status"></span>
+            <div class="task-copy">${escapeHtml(task.text)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </aside>
+  `;
+}
+
+function renderDetails() {
+  const day = getSelectedDay();
+  const segmentLabel = day.segment ? day.segment.label : 'יום פתוח';
+
+  return `
+    <section class="detail-grid">
+      <section class="detail-card">
+        <div class="detail-header">
+          <div>
+            <div class="section-title">${escapeHtml(day.dayName)} · ${escapeHtml(formatDate(day.date))}</div>
+            <h2>${escapeHtml(day.title)}</h2>
+            <p>${escapeHtml(day.summary)}</p>
+          </div>
+          <div class="detail-actions">
+            <span class="chip">${escapeHtml(segmentLabel)}</span>
+            <span class="chip">${escapeHtml(day.location.name)}</span>
+            <span class="chip">${escapeHtml(day.travelMode)}</span>
+          </div>
+        </div>
+        <div class="section-title">אירועי היום</div>
+        <div class="event-list">${renderEventList(day)}</div>
+      </section>
+      <div>
+        ${renderLogistics(day)}
+        <div style="height:18px"></div>
+        ${renderTasks(day)}
+      </div>
+    </section>
+  `;
+}
+
+function buildQuickPrompts() {
+  return [
+    { title: 'מה חסר לי לסגור?', body: 'נתח משימות פתוחות לפי היום שנבחר' },
+    { title: 'איך נראה מחר?', body: 'תן תקציר לוגיסטי ליום הבא במסלול' },
+    { title: 'איפה יש עומס?', body: 'אתר יום עמוס מדי והצע איזון' },
+    { title: 'תן המלצה ליום הזה', body: 'מה כדאי לשפר ביום הנבחר?' }
+  ];
+}
+
+function answerUserPrompt(prompt) {
+  const day = getSelectedDay();
+  const normalized = prompt.toLowerCase();
+  const nextDay = tripDays[day.index + 1];
+  const openTodos = (tripData.todos || []).filter(todo => !todo.done);
+  const busiestDay = [...tripDays].sort((a, b) => (b.events.length + b.flights.length) - (a.events.length + a.flights.length))[0];
+
+  if (normalized.includes('מחר') || normalized.includes('tomorrow')) {
+    if (!nextDay) return `מחר כבר אין מסלול פעיל כי ${day.title} הוא היום האחרון בטיול.`;
+    return `מחר הוא ${nextDay.dayName} (${formatDate(nextDay.date)}): ${nextDay.title}.\nמיקום: ${nextDay.location.name}.\nפוקוס תפעולי: ${nextDay.summary}\nמשימות פתוחות קשורות: ${nextDay.pendingTodos.length ? nextDay.pendingTodos.map(todo => todo.text).join(' | ') : 'אין כרגע משהו דחוף.'}`;
+  }
+
+  if (normalized.includes('חסר') || normalized.includes('פתוח') || normalized.includes('booking') || normalized.includes('הזמנ')) {
+    return `כרגע יש ${openTodos.length} משימות פתוחות במסלול.\nליום שנבחר בולטים: ${day.pendingTodos.length ? day.pendingTodos.map(todo => todo.text).join(' | ') : 'אין משימות ישירות ליום הזה.'}\nברמת המאקרו עדיין חסרות סגירות סביב לינות, כרטיסים לפארקים והשכרת רכב.`;
+  }
+
+  if (normalized.includes('עומס') || normalized.includes('busy') || normalized.includes('איזון')) {
+    return `היום העמוס ביותר כרגע נראה כמו ${formatDate(busiestDay.date)} עם הכותרת "${busiestDay.title}".\nיש בו ${busiestDay.events.length + busiestDay.flights.length} עוגנים.\nהמלצה מוצרית: לזהות אילו חלקים נעולים ואילו גמישים, ואז להציע ל-AI לחלק את היום לבוקר / צהריים / ערב עם מרווחי נסיעה.`;
+  }
+
+  if (normalized.includes('היום') || normalized.includes('יום הזה') || normalized.includes('selected')) {
+    return `היום שנבחר הוא ${formatDate(day.date)}: ${day.title}.\nהוא מתרחש ב-${day.location.name} ושייך ל-${day.segment ? day.segment.label : 'יום פתוח'}.\nאם נרצה להפוך אותו לחכם יותר, הצעד הבא הוא להוסיף לו חלונות זמן, עלות, תחבורה וזמני הזמנה.`;
+  }
+
+  return `סיכום מהיר למסלול:\nהטיול בנוי על ${tripDays.length} ימים, עם מוקדים בניו יורק, וושינגטון, כביש החוף המזרחי ואורלנדו/פלורידה.\nהיום שנבחר כרגע הוא "${day.title}" ב-${day.location.name}.\nאם נמשיך לפיתוח מלא, הייתי מוסיף שכבת AI שמעדכנת אוטומטית timeline, map ו-day details מתוך השיחה עם המשתמש.`;
+}
+
+function renderChat() {
+  const prompts = buildQuickPrompts();
+  return `
+    <section class="chat-card">
+      <div class="card-head">
+        <div>
+          <h3>Trip AI Copilot</h3>
+          <p>צ'אט ראשוני שמוכיח את הפטרן: המשתמש מדבר עם AI, והמערכת עונה מתוך המסלול, מזהה פערים וממליצה על הצעד הבא.</p>
+        </div>
+        <span class="badge">Prototype</span>
+      </div>
+      <div class="quick-prompts">
+        ${prompts.map(prompt => `
+          <button type="button" class="prompt-btn" onclick="usePrompt('${encodeURIComponent(prompt.body)}')">
+            <strong>${escapeHtml(prompt.title)}</strong>
+            <span>${escapeHtml(prompt.body)}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        ${chatHistory.map(message => `
+          <div class="message ${message.role}">
+            <span class="message-role">${message.role === 'user' ? 'אתה' : 'Trip AI'}</span>
+            <div class="message-body">${escapeHtml(message.body)}</div>
+          </div>
+        `).join('')}
+      </div>
+      <form class="chat-form" onsubmit="submitChat(event)">
+        <label class="sr-only" for="chat-input">שאל את ה-AI</label>
+        <textarea id="chat-input" class="chat-input" placeholder="לדוגמה: מה חסר לי לסגור ליום הזה?"></textarea>
+        <button class="chat-submit" type="submit">שלח</button>
+      </form>
+    </section>
+  `;
+}
+
+function usePrompt(encodedPrompt) {
+  const input = document.getElementById('chat-input');
+  input.value = decodeURIComponent(encodedPrompt);
+  input.focus();
+}
+
+function submitChat(event) {
+  event.preventDefault();
+  const input = document.getElementById('chat-input');
+  const prompt = input.value.trim();
+  if (!prompt) return;
+
+  chatHistory.push({ role: 'user', body: prompt });
+  chatHistory.push({ role: 'assistant', body: answerUserPrompt(prompt) });
+  input.value = '';
+  render();
+  const messages = document.getElementById('chat-messages');
+  if (messages) messages.scrollTop = messages.scrollHeight;
+}
+
+function selectDay(dateStr) {
+  selectedDate = dateStr;
+  render();
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    ${renderHero()}
+    <section class="workspace">
+      <div>
+        ${renderTimeline()}
+      </div>
+      <div style="display:grid; gap:18px;">
+        ${renderMap()}
+        ${renderChat()}
+      </div>
+    </section>
+    ${renderDetails()}
+    <div class="footer-note">הגרסה הזו מוכנה כבסיס למוצר AI אמיתי: השלב הבא הוא חיבור ל-LLM, שמירת שיחות, ועדכון המסלול מתוך הדיאלוג.</div>
+  `;
+}
+
+async function init() {
+  tripData = await loadData();
+  tripData.events = tripData.events.filter(event => isDateInTrip(event.date, tripData));
+  tripData.segments = tripData.segments.filter(segment => segment.endDate >= tripData.startDate && segment.startDate <= tripData.endDate);
+  tripDays = buildTripDays();
+  selectedDate = tripDays[0]?.date || null;
+  chatHistory = [
+    {
+      role: 'assistant',
+      body: `אני רואה מסלול של ${tripDays.length} ימים. בחר יום מהטיימליין, או שאל אותי מה חסר לסגור, איפה יש עומס, ואיך ללטש את התכנון.`
+    }
+  ];
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
