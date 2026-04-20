@@ -37,7 +37,7 @@ export function RealTripMap({ apiKey, days, selectedDate }: RealTripMapProps) {
           className="real-map"
         >
           <MapViewport days={days} selectedDate={selectedDate} />
-          <RoutePolyline days={days} />
+          <DrivingRoute days={days} />
           {days.map((day) => {
             const isSelected = day.date === selectedDate;
 
@@ -91,25 +91,126 @@ function MapViewport({ days, selectedDate }: { days: TripDay[]; selectedDate: st
   return null;
 }
 
-function RoutePolyline({ days }: { days: TripDay[] }) {
+function DrivingRoute({ days }: { days: TripDay[] }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!map || !window.google?.maps) return;
+    if (!map || !window.google?.maps || days.length < 2) return;
 
-    const polyline = new window.google.maps.Polyline({
-      path: days.map((day) => ({ lat: day.location.lat, lng: day.location.lng })),
-      geodesic: true,
-      strokeColor: "#0c7c74",
-      strokeOpacity: 0.85,
-      strokeWeight: 4,
+    const service = new window.google.maps.DirectionsService();
+    const renderer = new window.google.maps.DirectionsRenderer({
       map,
+      suppressMarkers: true,
+      preserveViewport: true,
+      polylineOptions: {
+        strokeColor: "#0c7c74",
+        strokeOpacity: 0.82,
+        strokeWeight: 5,
+      },
+    });
+
+    const origin = { lat: days[0].location.lat, lng: days[0].location.lng };
+    const destination = {
+      lat: days[days.length - 1].location.lat,
+      lng: days[days.length - 1].location.lng,
+    };
+
+    const rawWaypoints = days.slice(1, -1).map((day) => ({
+      location: { lat: day.location.lat, lng: day.location.lng },
+      stopover: true,
+    }));
+
+    const waypointGroups = splitWaypoints(rawWaypoints, 23);
+
+    let active = true;
+
+    async function loadRoute() {
+      const mergedPath: google.maps.LatLngLiteral[] = [];
+      let segmentOrigin = origin;
+
+      for (let index = 0; index < waypointGroups.length || index === 0; index += 1) {
+        const group = waypointGroups[index] ?? [];
+        const segmentDestination =
+          index === waypointGroups.length - 1 || waypointGroups.length === 0
+            ? destination
+            : (group[group.length - 1]?.location as google.maps.LatLngLiteral);
+        const segmentWaypoints =
+          index === waypointGroups.length - 1 || waypointGroups.length === 0
+            ? group
+            : group.slice(0, -1);
+
+        const result = await service.route({
+          origin: segmentOrigin,
+          destination: segmentDestination,
+          waypoints: segmentWaypoints,
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        });
+
+        const route = result.routes[0];
+        const overviewPath = route?.overview_path?.map((point) => ({
+          lat: point.lat(),
+          lng: point.lng(),
+        })) ?? [];
+
+        if (index === 0) {
+          mergedPath.push(...overviewPath);
+        } else {
+          mergedPath.push(...overviewPath.slice(1));
+        }
+
+        segmentOrigin = segmentDestination;
+      }
+
+      if (!active || !mergedPath.length) return;
+
+      const routePath = new window.google.maps.Polyline({
+        path: mergedPath,
+        geodesic: true,
+        strokeColor: "#0c7c74",
+        strokeOpacity: 0.82,
+        strokeWeight: 5,
+        map,
+      });
+
+      renderer.setMap(null);
+
+      cleanup = () => {
+        routePath.setMap(null);
+      };
+    }
+
+    let cleanup = () => {
+      renderer.setMap(null);
+    };
+
+    loadRoute().catch(() => {
+      const fallbackLine = new window.google.maps.Polyline({
+        path: days.map((day) => ({ lat: day.location.lat, lng: day.location.lng })),
+        geodesic: true,
+        strokeColor: "#0c7c74",
+        strokeOpacity: 0.65,
+        strokeWeight: 4,
+        map,
+      });
+
+      cleanup = () => {
+        fallbackLine.setMap(null);
+      };
     });
 
     return () => {
-      polyline.setMap(null);
+      active = false;
+      cleanup();
     };
   }, [map, days]);
 
   return null;
+}
+
+function splitWaypoints<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
 }
