@@ -1,3 +1,5 @@
+@import "leaflet/dist/leaflet.css";
+
 :root {
   --bg: #f6efe3;
   --bg-soft: #fffaf2;
@@ -311,6 +313,53 @@ a {
   display: block;
 }
 
+.real-map-frame {
+  padding: 0;
+  border: 1px solid rgba(99, 70, 33, 0.08);
+  background: #f3ece2;
+}
+
+.real-map,
+.real-map-frame .leaflet-container {
+  width: 100%;
+  height: 420px;
+  border-radius: 24px;
+  z-index: 1;
+}
+
+.map-loading {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background:
+    radial-gradient(circle at 20% 30%, rgba(12, 124, 116, 0.16), transparent 22%),
+    radial-gradient(circle at 80% 72%, rgba(213, 111, 62, 0.18), transparent 18%),
+    linear-gradient(180deg, #fbf5ec 0%, #f0e7da 100%);
+}
+
+.trip-map-marker-wrapper {
+  background: transparent;
+  border: none;
+}
+
+.trip-map-marker {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #d56f3e;
+  color: white;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(66, 44, 15, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.trip-map-marker.selected {
+  background: #0c7c74;
+  transform: scale(1.08);
+}
+
 .map-note {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -538,6 +587,11 @@ a {
 
   .map-frame {
     min-height: 360px;
+  }
+
+  .real-map,
+  .real-map-frame .leaflet-container {
+    height: 360px;
   }
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useTransition } from "react";
 import {
   buildAiAnswer,
@@ -20,7 +21,13 @@ type TripDashboardProps = {
   days: TripDay[];
 };
 
-const MAP_BOUNDS = { minLat: 25.6, maxLat: 41.3, minLng: -81.7, maxLng: -72.6 };
+const RealTripMap = dynamic(
+  () => import("@/components/real-trip-map").then((module) => module.RealTripMap),
+  {
+    ssr: false,
+    loading: () => <div className="map-frame map-loading">טוען מפה אינטראקטיבית...</div>,
+  },
+);
 
 const quickPrompts = [
   { title: "מה חסר לי לסגור?", body: "נתח משימות פתוחות לפי היום שנבחר" },
@@ -180,11 +187,11 @@ export function TripDashboard({ days }: TripDashboardProps) {
             <div className="card-head">
               <div>
                 <h3>מפת הסיפור של הטיול</h3>
-                <p>המסך הימני מספר איפה כל יום קורה. בגרסה הבאה אפשר לחבר כאן Google Maps או Mapbox ולתמוך ב-routing והצעות AI גיאוגרפיות.</p>
+                <p>המפה עכשיו חיה ואינטראקטיבית, עם markers אמיתיים ונתיב שמחבר בין ימי המסלול.</p>
               </div>
               <span className="badge">{selectedDay.location.region}</span>
             </div>
-            <RouteMap days={days} selectedDate={selectedDate} />
+            <RealTripMap days={days} selectedDate={selectedDate} />
             <div className="map-note">
               <div className="mini-stat">
                 <div className="mini-stat-label">היום הנבחר</div>
@@ -365,61 +372,4 @@ export function TripDashboard({ days }: TripDashboardProps) {
       </div>
     </div>
   );
-}
-
-function RouteMap({ days, selectedDate }: { days: TripDay[]; selectedDate: string }) {
-  const polyline = days
-    .map((day) => {
-      const point = projectPoint(day.location);
-      return `${point.x},${point.y}`;
-    })
-    .join(" ");
-
-  return (
-    <div className="map-frame">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="מפת מסלול הטיול">
-        <defs>
-          <linearGradient id="routeGradient" x1="0" x2="1">
-            <stop offset="0%" stopColor="#0c7c74" />
-            <stop offset="100%" stopColor="#d56f3e" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M76 8 C69 15, 66 23, 64 30 C62 38, 63 49, 58 55 C53 61, 47 70, 45 79 C43 85, 44 93, 49 96 L100 96 L100 0 L82 0 C80 2, 79 4, 76 8 Z"
-          fill="rgba(255,255,255,0.55)"
-          stroke="rgba(99,70,33,0.12)"
-          strokeWidth="0.4"
-        />
-        <path
-          d="M63 28 C66 35, 67 44, 63 52 C60 58, 55 65, 51 71 C47 77, 46 84, 49 92"
-          fill="none"
-          stroke="rgba(99,70,33,0.14)"
-          strokeWidth="0.8"
-          strokeDasharray="1.5 2.5"
-        />
-        <polyline points={polyline} fill="none" stroke="url(#routeGradient)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-        {days.map((day) => {
-          const point = projectPoint(day.location);
-          const selected = day.date === selectedDate;
-          return (
-            <g key={day.date}>
-              {selected ? <circle cx={point.x} cy={point.y} r="3.8" fill="rgba(12,124,116,0.14)" /> : null}
-              <circle cx={point.x} cy={point.y} r={selected ? "2.2" : "1.25"} fill={selected ? "#0c7c74" : "#d56f3e"} />
-              {selected ? (
-                <text x={Math.min(point.x + 2.6, 90)} y={Math.max(point.y - 2.2, 6)} fontSize="3.2" fontFamily="Arial" fill="#2f2619">
-                  {day.dayNum}
-                </text>
-              ) : null}
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-function projectPoint(location: TripDay["location"]) {
-  const x = ((location.lng - MAP_BOUNDS.minLng) / (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) * 100;
-  const y = 100 - ((location.lat - MAP_BOUNDS.minLat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * 100;
-  return { x, y };
 }
