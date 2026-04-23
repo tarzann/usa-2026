@@ -175,6 +175,17 @@ a {
   padding: 14px 16px;
 }
 
+.event-card-button {
+  width: 100%;
+  text-align: right;
+  color: inherit;
+}
+
+.event-card-button:hover {
+  border-color: rgba(12, 124, 116, 0.24);
+  box-shadow: 0 12px 24px rgba(66, 44, 15, 0.08);
+}
+
 .stat-label,
 .mini-stat-label,
 .section-title {

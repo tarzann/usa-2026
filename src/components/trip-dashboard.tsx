@@ -2,9 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useTransition } from "react";
-import {
-  type DayAttachment,
-} from "@/lib/attachments";
+import { type DayAttachment } from "@/lib/attachments";
+import type { FocusedMapLocation } from "@/components/real-trip-map";
 import {
   buildAiAnswer,
   countLockedItems,
@@ -49,6 +48,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const [attachments, setAttachments] = useState<DayAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(true);
   const [attachmentsError, setAttachmentsError] = useState("");
+  const [focusedLocation, setFocusedLocation] = useState<FocusedMapLocation | null>(null);
   const [chatHistory, setChatHistory] = useState<Message[]>([
     {
       role: "assistant",
@@ -64,6 +64,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   function selectDay(date: string) {
     setAttachmentsLoading(true);
     setAttachmentsError("");
+    setFocusedLocation(null);
     setSelectedDate(date);
   }
 
@@ -306,7 +307,12 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
               </div>
               <span className="badge">{selectedDay.location.region}</span>
             </div>
-            <RealTripMap apiKey={googleMapsApiKey} days={days} selectedDate={selectedDate} />
+            <RealTripMap
+              apiKey={googleMapsApiKey}
+              days={days}
+              selectedDate={selectedDate}
+              focusedLocation={focusedLocation}
+            />
             <div className="map-note">
               <div className="mini-stat">
                 <div className="mini-stat-label">היום הנבחר</div>
@@ -342,16 +348,31 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
           <div className="section-title">אירועי היום</div>
           <div className="event-list">
             {selectedDay.flights.map((flight) => (
-              <div key={`${selectedDay.date}-${flight.label}`} className="event-card">
+              <button
+                key={`${selectedDay.date}-${flight.label}`}
+                type="button"
+                className="event-card event-card-button"
+                onClick={() => setFocusedLocation({
+                  title: flight.label,
+                  subtitle: flight.details.replace(/\s*\|\s*/g, " · "),
+                  lat: selectedDay.location.lat,
+                  lng: selectedDay.location.lng,
+                })}
+              >
                 <div className="event-title"><span>✈️ {flight.label}</span><span>{selectedDay.travelMode}</span></div>
                 <div className="event-body">{flight.details.replace(/\s*\|\s*/g, " · ")}</div>
-              </div>
+              </button>
             ))}
             {selectedDay.events.map((event) => (
-              <div key={`${selectedDay.date}-${event.label}`} className="event-card">
+              <button
+                key={`${selectedDay.date}-${event.label}`}
+                type="button"
+                className="event-card event-card-button"
+                onClick={() => setFocusedLocation(resolveEventLocation(event.label, event.details, selectedDay))}
+              >
                 <div className="event-title"><span>{event.emoji} {event.label}</span><span>{event.locked ? "נעול" : "גמיש"}</span></div>
                 <div className="event-body">{event.details.replace(/\s*\|\s*/g, " · ")}</div>
-              </div>
+              </button>
             ))}
             {!selectedDay.flights.length && !selectedDay.events.length ? (
               <div className="event-card">
@@ -522,4 +543,48 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
       </div>
     </div>
   );
+}
+
+function resolveEventLocation(label: string, details: string, fallbackDay: TripDay): FocusedMapLocation {
+  const text = `${label} ${details}`.toLowerCase();
+  const candidates: Array<FocusedMapLocation & { keywords: string[] }> = [
+    { title: "JFK Airport", subtitle: "New York", lat: 40.6413, lng: -73.7781, keywords: ["jfk"] },
+    { title: "Times Square", subtitle: "New York", lat: 40.758, lng: -73.9855, keywords: ["times square"] },
+    { title: "Brooklyn Bridge", subtitle: "New York", lat: 40.7061, lng: -73.9969, keywords: ["brooklyn bridge", "גשר ברוקלין"] },
+    { title: "Statue of Liberty", subtitle: "New York Harbor", lat: 40.6892, lng: -74.0445, keywords: ["statue of liberty", "liberty"] },
+    { title: "9/11 Memorial", subtitle: "Lower Manhattan", lat: 40.7115, lng: -74.0134, keywords: ["9/11"] },
+    { title: "American Museum of Natural History", subtitle: "New York", lat: 40.7813, lng: -73.9735, keywords: ["amnh", "natural history"] },
+    { title: "Central Park", subtitle: "New York", lat: 40.7829, lng: -73.9654, keywords: ["central park"] },
+    { title: "Lincoln Memorial", subtitle: "Washington DC", lat: 38.8893, lng: -77.0502, keywords: ["lincoln"] },
+    { title: "National Air and Space Museum", subtitle: "Washington DC", lat: 38.8882, lng: -77.0199, keywords: ["air & space", "air and space"] },
+    { title: "Georgetown", subtitle: "Washington DC", lat: 38.9097, lng: -77.0654, keywords: ["georgetown"] },
+    { title: "Norfolk", subtitle: "Virginia", lat: 36.8508, lng: -76.2859, keywords: ["norfolk"] },
+    { title: "Outer Banks", subtitle: "North Carolina", lat: 35.5582, lng: -75.4665, keywords: ["outer banks", "ocracoke"] },
+    { title: "Charleston", subtitle: "South Carolina", lat: 32.7765, lng: -79.9311, keywords: ["charleston"] },
+    { title: "Savannah", subtitle: "Georgia", lat: 32.0809, lng: -81.0912, keywords: ["savannah"] },
+    { title: "Magic Kingdom", subtitle: "Walt Disney World", lat: 28.4194, lng: -81.5812, keywords: ["magic kingdom"] },
+    { title: "EPCOT", subtitle: "Walt Disney World", lat: 28.3747, lng: -81.5494, keywords: ["epcot"] },
+    { title: "Animal Kingdom", subtitle: "Walt Disney World", lat: 28.3554, lng: -81.5903, keywords: ["animal kingdom"] },
+    { title: "Epic Universe", subtitle: "Universal Orlando", lat: 28.4401, lng: -81.4475, keywords: ["epic universe"] },
+    { title: "Islands of Adventure", subtitle: "Universal Orlando", lat: 28.4727, lng: -81.4713, keywords: ["islands of adventure"] },
+    { title: "Kennedy Space Center", subtitle: "Florida", lat: 28.5729, lng: -80.649, keywords: ["kennedy"] },
+    { title: "Miami", subtitle: "Florida", lat: 25.7617, lng: -80.1918, keywords: ["miami"] },
+  ];
+
+  const match = candidates.find((candidate) => candidate.keywords.some((keyword) => text.includes(keyword)));
+  if (match) {
+    return {
+      title: match.title,
+      subtitle: match.subtitle,
+      lat: match.lat,
+      lng: match.lng,
+    };
+  }
+
+  return {
+    title: label,
+    subtitle: fallbackDay.location.name,
+    lat: fallbackDay.location.lat,
+    lng: fallbackDay.location.lng,
+  };
 }

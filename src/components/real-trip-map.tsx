@@ -14,11 +14,19 @@ type RealTripMapProps = {
   apiKey: string;
   days: TripDay[];
   selectedDate: string;
+  focusedLocation: FocusedMapLocation | null;
 };
 
 const defaultCenter = { lat: 34.8, lng: -78.2 };
 
-export function RealTripMap({ apiKey, days, selectedDate }: RealTripMapProps) {
+export type FocusedMapLocation = {
+  title: string;
+  subtitle: string;
+  lat: number;
+  lng: number;
+};
+
+export function RealTripMap({ apiKey, days, selectedDate, focusedLocation }: RealTripMapProps) {
   const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
 
   if (!apiKey) {
@@ -36,7 +44,7 @@ export function RealTripMap({ apiKey, days, selectedDate }: RealTripMapProps) {
           mapId="trip-planner-map"
           className="real-map"
         >
-          <MapViewport days={days} selectedDate={selectedDate} />
+          <MapViewport days={days} selectedDate={selectedDate} focusedLocation={focusedLocation} />
           <DrivingRoute days={days} />
           {days.map((day) => {
             const isSelected = day.date === selectedDate;
@@ -59,10 +67,16 @@ export function RealTripMap({ apiKey, days, selectedDate }: RealTripMapProps) {
             );
           })}
           {selectedDay ? (
-            <AdvancedMarker position={{ lat: selectedDay.location.lat, lng: selectedDay.location.lng }} title={selectedDay.title}>
+            <AdvancedMarker
+              position={{
+                lat: focusedLocation?.lat ?? selectedDay.location.lat,
+                lng: focusedLocation?.lng ?? selectedDay.location.lng,
+              }}
+              title={focusedLocation?.title ?? selectedDay.title}
+            >
               <div className="selected-map-label">
-                <strong>{selectedDay.title}</strong>
-                <span>{selectedDay.location.name}</span>
+                <strong>{focusedLocation?.title ?? selectedDay.title}</strong>
+                <span>{focusedLocation?.subtitle ?? selectedDay.location.name}</span>
               </div>
             </AdvancedMarker>
           ) : null}
@@ -72,11 +86,27 @@ export function RealTripMap({ apiKey, days, selectedDate }: RealTripMapProps) {
   );
 }
 
-function MapViewport({ days, selectedDate }: { days: TripDay[]; selectedDate: string }) {
+function MapViewport({
+  days,
+  selectedDate,
+  focusedLocation,
+}: {
+  days: TripDay[];
+  selectedDate: string;
+  focusedLocation: FocusedMapLocation | null;
+}) {
   const map = useMap();
 
   useEffect(() => {
     if (!map || !days.length || !window.google?.maps) return;
+
+    if (focusedLocation) {
+      map.panTo({ lat: focusedLocation.lat, lng: focusedLocation.lng });
+      if ((map.getZoom() ?? 0) < 13) {
+        map.setZoom(13);
+      }
+      return;
+    }
 
     const bounds = new window.google.maps.LatLngBounds();
     days.forEach((day) => bounds.extend({ lat: day.location.lat, lng: day.location.lng }));
@@ -86,7 +116,7 @@ function MapViewport({ days, selectedDate }: { days: TripDay[]; selectedDate: st
     if (selectedDay) {
       map.panTo({ lat: selectedDay.location.lat, lng: selectedDay.location.lng });
     }
-  }, [map, days, selectedDate]);
+  }, [map, days, selectedDate, focusedLocation]);
 
   return null;
 }
