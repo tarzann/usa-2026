@@ -549,13 +549,17 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
       <div className="assistant-widget">
         {isChatOpen ? (
           <section className="chat-card floating-chat">
-            <div className="card-head">
+            <div className="sheet-handle" aria-hidden="true" />
+            <div className="floating-chat-head">
               <div>
-                <h3>Trip AI Copilot</h3>
-                <p>העוזר זמין מכל מקום במסך, בלי לתפוס את אזור העבודה הראשי.</p>
+                <div className="assistant-status">
+                  <span />
+                  <strong>Trip AI פעיל</strong>
+                </div>
+                <h3>איך אפשר לעזור ביום הזה?</h3>
+                <p>{selectedDay.title} · {formatDate(selectedDay.date)}</p>
               </div>
               <div className="floating-chat-actions">
-                <span className="badge">gpt-5.4-mini</span>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -569,10 +573,10 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
             </div>
             <div className="quick-prompts">
               {quickPrompts.map((prompt) => (
-                <button key={prompt.title} type="button" className="prompt-btn" onClick={() => setChatInput(prompt.body)}>
+                <Button key={prompt.title} variant="glass" size="sm" className="prompt-btn" onClick={() => setChatInput(prompt.body)}>
                   <strong>{prompt.title}</strong>
                   <span>{prompt.body}</span>
-                </button>
+                </Button>
               ))}
             </div>
             <div className="chat-messages">

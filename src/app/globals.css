@@ -798,11 +798,16 @@ a {
 
 .quick-prompts {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .prompt-btn {
-  padding: 12px 14px;
+  justify-content: start;
+  height: auto;
+  padding: 10px 12px;
+  border-radius: 16px;
   text-align: right;
+  background: rgba(255, 255, 255, 0.58);
 }
 
 .prompt-btn strong,
@@ -812,12 +817,22 @@ a {
 }
 
 .chat-messages {
-  max-height: 330px;
+  position: relative;
+  max-height: 360px;
   overflow: auto;
+  padding: 4px 2px;
+  scrollbar-width: thin;
 }
 
 .message.user {
   background: rgba(42, 166, 161, 0.1);
+  justify-self: end;
+  max-width: 92%;
+}
+
+.message.assistant {
+  justify-self: start;
+  max-width: 96%;
 }
 
 .message-role {
@@ -831,26 +846,33 @@ a {
 }
 
 .chat-form {
+  position: sticky;
+  bottom: 0;
   grid-template-columns: minmax(0, 1fr) auto;
+  padding: 8px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
 .chat-input {
   min-height: 54px;
-  max-height: 140px;
+  max-height: 130px;
   resize: vertical;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: 18px;
-  border: 1px solid rgba(38, 77, 91, 0.12);
-  background: rgba(255, 255, 255, 0.82);
+  border: 0;
+  background: transparent;
+  outline: none;
+  color: var(--text);
 }
 
 .chat-submit {
-  min-width: 118px;
-  border-radius: 18px;
-  color: white;
-  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+  min-width: 82px;
+  border-radius: 16px;
   font-weight: 800;
-  padding: 0 18px;
+  padding: 0 16px;
 }
 
 .gap-block {
@@ -875,11 +897,59 @@ a {
 }
 
 .floating-chat {
-  width: min(420px, calc(100vw - 28px));
-  max-height: min(720px, calc(100vh - 120px));
+  width: min(460px, calc(100vw - 28px));
+  max-height: min(760px, calc(100vh - 112px));
+  display: grid;
+  gap: 14px;
+  overflow: hidden;
   box-shadow: 0 26px 70px rgba(13, 36, 48, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.74);
   background: rgba(251, 253, 255, 0.94);
+}
+
+.sheet-handle {
+  justify-self: center;
+  width: 46px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(102, 121, 135, 0.28);
+  margin-top: -4px;
+}
+
+.floating-chat-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+}
+
+.floating-chat-head h3 {
+  font-family: var(--font-space-grotesk), var(--font-assistant), sans-serif;
+  font-size: 1.28rem;
+  letter-spacing: -0.02em;
+  margin: 4px 0;
+}
+
+.floating-chat-head p {
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 0.9rem;
+}
+
+.assistant-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--brand-strong);
+  font-size: 0.78rem;
+}
+
+.assistant-status span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 5px rgba(58, 167, 123, 0.12);
 }
 
 .floating-chat-actions {
@@ -1010,15 +1080,28 @@ a {
   }
 
   .assistant-widget {
-    right: 14px;
-    left: 14px;
-    bottom: 14px;
+    right: 10px;
+    left: 10px;
+    bottom: 10px;
     justify-items: stretch;
   }
 
   .floating-chat {
     width: 100%;
-    max-height: min(70vh, 620px);
+    max-height: min(78vh, 680px);
+    border-radius: 30px 30px 24px 24px;
+  }
+
+  .floating-chat-head {
+    align-items: center;
+  }
+
+  .floating-chat-head h3 {
+    font-size: 1.12rem;
+  }
+
+  .chat-messages {
+    max-height: 42vh;
   }
 
   .assistant-launcher {
