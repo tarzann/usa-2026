@@ -52,6 +52,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
   const nextDay = days[selectedDay.index + 1];
   const progress = Math.round(getProgressRatio(tripData) * 100);
+  const orderedDays = [selectedDay, ...days.filter((day) => day.date !== selectedDay.date)];
 
   function submitPrompt(prompt: string) {
     if (!prompt.trim()) return;
@@ -145,7 +146,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
             <span className="badge">{days.length} ימים</span>
           </div>
           <div className="timeline-list">
-            {days.map((day) => {
+            {orderedDays.map((day) => {
               const preview = day.events[0] ? day.events[0].details.split("|")[0].trim() : day.summary;
 
               return (
@@ -171,10 +172,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
                     <div className="day-preview">{preview}</div>
                     <div className="day-flags">
                       {day.flights.length ? <span className="chip">טיסה</span> : null}
-                      {day.hotels.length ? <span className="chip">לינה פעילה</span> : null}
-                      <span className="chip">
-                        {day.pendingTodos.length ? `${day.pendingTodos.length} משימות פתוחות` : "ללא פערים מיידיים"}
-                      </span>
+                      {day.pendingTodos.length ? <span className="chip">{day.pendingTodos.length} משימות</span> : null}
                     </div>
                   </div>
                 </button>
