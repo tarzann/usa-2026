@@ -24,6 +24,29 @@ type TripDashboardProps = {
   googleMapsApiKey: string;
 };
 
+type DayPlanPeriod = "morning" | "afternoon" | "evening" | "logistics";
+type DayPlanTone = "locked" | "planned" | "flexible" | "open";
+
+type DayPlanItem = {
+  id: string;
+  title: string;
+  details: string;
+  icon: string;
+  meta: string;
+  period: DayPlanPeriod;
+  status: string;
+  tone: DayPlanTone;
+  focusLabel: string;
+  focusDetails: string;
+};
+
+const dayPlanPeriods: Array<{ id: DayPlanPeriod; title: string; helper: string }> = [
+  { id: "morning", title: "בוקר", helper: "פתיחה נכונה ליום" },
+  { id: "afternoon", title: "צהריים", helper: "עומק הפעילות" },
+  { id: "evening", title: "ערב", helper: "סגירת היום" },
+  { id: "logistics", title: "לוגיסטיקה", helper: "מעברים, לינה ומסמכים" },
+];
+
 const RealTripMap = dynamic(
   () => import("@/components/real-trip-map").then((module) => module.RealTripMap),
   {
@@ -60,6 +83,8 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
   const nextDay = days[selectedDay.index + 1];
   const progress = Math.round(getProgressRatio(tripData) * 100);
+  const dayPlan = buildDayPlan(selectedDay);
+  const dayStats = getDayStats(selectedDay);
 
   function selectDay(date: string) {
     setAttachmentsLoading(true);
@@ -345,36 +370,63 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
               <span className="chip">{selectedDay.travelMode}</span>
             </div>
           </div>
-          <div className="section-title">אירועי היום</div>
-          <div className="event-list">
-            {selectedDay.flights.map((flight) => (
-              <button
-                key={`${selectedDay.date}-${flight.label}`}
-                type="button"
-                className="event-card event-card-button"
-                onClick={() => setFocusedLocation(resolveEventLocation(flight.label, flight.details, selectedDay))}
-              >
-                <div className="event-title"><span>✈️ {flight.label}</span><span>{selectedDay.travelMode}</span></div>
-                <div className="event-body">{flight.details.replace(/\s*\|\s*/g, " · ")}</div>
-              </button>
-            ))}
-            {selectedDay.events.map((event) => (
-              <button
-                key={`${selectedDay.date}-${event.label}`}
-                type="button"
-                className="event-card event-card-button"
-                onClick={() => setFocusedLocation(resolveEventLocation(event.label, event.details, selectedDay))}
-              >
-                <div className="event-title"><span>{event.emoji} {event.label}</span><span>{event.locked ? "נעול" : "גמיש"}</span></div>
-                <div className="event-body">{event.details.replace(/\s*\|\s*/g, " · ")}</div>
-              </button>
-            ))}
-            {!selectedDay.flights.length && !selectedDay.events.length ? (
-              <div className="event-card">
-                <div className="event-title"><span>יום פתוח</span><span>AI Opportunity</span></div>
-                <div className="event-body">אין עדיין תוכן קשיח ליום הזה. זה בדיוק המקום שבו עוזר AI יכול להציע אטרקציות, מסלולים או קיצורי דרך.</div>
-              </div>
-            ) : null}
+
+          <div className="day-intelligence-strip" aria-label="תקציר מצב היום">
+            <div>
+              <span>{dayStats.locked}</span>
+              <strong>נעולים</strong>
+            </div>
+            <div>
+              <span>{dayStats.flexible}</span>
+              <strong>גמישים</strong>
+            </div>
+            <div>
+              <span>{selectedDay.pendingTodos.length}</span>
+              <strong>משימות</strong>
+            </div>
+            <div>
+              <span>{attachments.length}</span>
+              <strong>קבצים</strong>
+            </div>
+          </div>
+
+          <div className="section-title">תכנון היום</div>
+          <div className="daily-plan-board">
+            {dayPlanPeriods.map((period) => {
+              const items = dayPlan.filter((item) => item.period === period.id);
+
+              return (
+                <section key={period.id} className="plan-period">
+                  <div className="plan-period-head">
+                    <div>
+                      <h4>{period.title}</h4>
+                      <p>{period.helper}</p>
+                    </div>
+                    <span>{items.length}</span>
+                  </div>
+                  <div className="plan-period-list">
+                    {items.length ? items.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`plan-item plan-item-button plan-item-${item.tone}`}
+                        onClick={() => setFocusedLocation(resolveEventLocation(item.focusLabel, item.focusDetails, selectedDay))}
+                      >
+                        <div className="plan-item-top">
+                          <span className="plan-item-icon">{item.icon}</span>
+                          <span className="plan-item-title">{item.title}</span>
+                          <span className="plan-status">{item.status}</span>
+                        </div>
+                        <div className="plan-item-body">{item.details}</div>
+                        <div className="plan-item-meta">{item.meta}</div>
+                      </button>
+                    )) : (
+                      <div className="plan-empty">אין עדיין פריט מוגדר. מקום טוב להמלצת AI.</div>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
           </div>
 
           <div className="section-title" style={{ marginTop: "18px" }}>מסמכים וקבצים</div>
@@ -538,6 +590,83 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
       </div>
     </div>
   );
+}
+
+function buildDayPlan(day: TripDay): DayPlanItem[] {
+  const flightItems: DayPlanItem[] = day.flights.map((flight) => ({
+    id: `${day.date}-flight-${flight.label}`,
+    title: flight.label,
+    details: formatPlanDetails(flight.details),
+    icon: "טיסה",
+    meta: day.travelMode,
+    period: "logistics",
+    status: "נעול",
+    tone: "locked",
+    focusLabel: flight.label,
+    focusDetails: flight.details,
+  }));
+
+  const eventItems: DayPlanItem[] = day.events.map((event) => ({
+    id: `${day.date}-event-${event.label}`,
+    title: event.label,
+    details: formatPlanDetails(event.details),
+    icon: event.emoji,
+    meta: event.locked ? "פריט סגור במסלול" : "אפשר עדיין להזיז או לדייק",
+    period: detectPlanPeriod(event.label, event.details),
+    status: event.locked ? "נעול" : "גמיש",
+    tone: event.locked ? "planned" : "flexible",
+    focusLabel: event.label,
+    focusDetails: event.details,
+  }));
+
+  const hotelItems: DayPlanItem[] = day.hotels.map((hotel) => ({
+    id: `${day.date}-hotel-${hotel.name}`,
+    title: hotel.name,
+    details: `${hotel.location} · ${hotel.address}`,
+    icon: "לינה",
+    meta: hotel.confirmation ? `אישור ${hotel.confirmation}` : "לינה משויכת ליום",
+    period: "logistics",
+    status: "סגור",
+    tone: "locked",
+    focusLabel: hotel.location,
+    focusDetails: `${hotel.name} ${hotel.address}`,
+  }));
+
+  const items = [...flightItems, ...eventItems, ...hotelItems];
+  if (items.length) return items;
+
+  return [{
+    id: `${day.date}-open-day`,
+    title: "יום פתוח לתכנון",
+    details: "אין עדיין תוכן קשיח ליום הזה. אפשר לבקש מה-AI לבנות הצעה לפי אזור, קצב ורמת עומס.",
+    icon: "AI",
+    meta: day.location.name,
+    period: "morning",
+    status: "פתוח",
+    tone: "open",
+    focusLabel: day.location.name,
+    focusDetails: day.summary,
+  }];
+}
+
+function detectPlanPeriod(label: string, details: string): DayPlanPeriod {
+  const text = `${label} ${details}`.toLowerCase();
+  if (text.includes("בוקר") || text.includes("morning") || text.includes("check-out")) return "morning";
+  if (text.includes("צהר") || text.includes("noon") || text.includes("afternoon") || text.includes("park")) return "afternoon";
+  if (text.includes("ערב") || text.includes("evening") || text.includes("dinner") || text.includes("לילה")) return "evening";
+  if (text.includes("טיסה") || text.includes("רכבת") || text.includes("נסיעה") || text.includes("מעבורת")) return "logistics";
+  return "afternoon";
+}
+
+function formatPlanDetails(details: string) {
+  return details.replace(/\s*\|\s*/g, " · ");
+}
+
+function getDayStats(day: TripDay) {
+  return {
+    locked: day.flights.length + day.hotels.length + day.events.filter((event) => event.locked).length,
+    flexible: day.events.filter((event) => !event.locked).length,
+  };
 }
 
 function resolveEventLocation(label: string, details: string, fallbackDay: TripDay): FocusedMapLocation {
