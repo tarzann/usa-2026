@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { type DayAttachment } from "@/lib/attachments";
 import type { FocusedMapLocation } from "@/components/real-trip-map";
+import { Button } from "@/components/ui/button";
 import {
   buildAiAnswer,
   countLockedItems,
@@ -485,9 +486,9 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
             </div>
             <div className="smart-brief-list">
               {smartBrief.map((item) => (
-                <button
+                <Button
                   key={item.id}
-                  type="button"
+                  variant="ghost"
                   className={`smart-brief-item smart-brief-${item.tone}`}
                   onClick={() => {
                     setIsChatOpen(true);
@@ -497,7 +498,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
                   <span className="smart-brief-kicker">{item.title}</span>
                   <span className="smart-brief-body">{item.body}</span>
                   <span className="smart-brief-action">שאל את Trip AI</span>
-                </button>
+                </Button>
               ))}
             </div>
             <div className="logistics-list">
@@ -555,14 +556,15 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
               </div>
               <div className="floating-chat-actions">
                 <span className="badge">gpt-5.4-mini</span>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="floating-chat-close"
                   onClick={() => setIsChatOpen(false)}
                   aria-label="סגור חלון צ'אט"
                 >
                   ✕
-                </button>
+                </Button>
               </div>
             </div>
             <div className="quick-prompts">
@@ -600,20 +602,21 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
                 onChange={(event) => setChatInput(event.target.value)}
                 placeholder="לדוגמה: מה חסר לי לסגור ליום הזה?"
               />
-              <button className="chat-submit" type="submit">שלח</button>
+              <Button className="chat-submit" variant="primary" type="submit">שלח</Button>
             </form>
           </section>
         ) : null}
 
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="lg"
           className="assistant-launcher"
           onClick={() => setIsChatOpen((current) => !current)}
           aria-label={isChatOpen ? "מזער עוזר AI" : "פתח עוזר AI"}
         >
           <span className="assistant-launcher-icon">AI</span>
           <span className="assistant-launcher-copy">{isChatOpen ? "מזער עוזר" : "Trip AI"}</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

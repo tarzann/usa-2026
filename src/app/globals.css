@@ -10,6 +10,11 @@
   --accent: #d56f3e;
   --success: #37795d;
   --shadow: 0 18px 48px rgba(66, 44, 15, 0.12);
+  --glass: rgba(255, 250, 244, 0.72);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-stroke: rgba(255, 255, 255, 0.58);
+  --focus-ring: 0 0 0 4px rgba(12, 124, 116, 0.16);
+  --button-shadow: 0 10px 24px rgba(66, 44, 15, 0.1);
 }
 
 * {
@@ -67,10 +72,14 @@ a {
 .detail-card,
 .logistics-card,
 .tasks-card {
-  background: var(--panel);
-  border: 1px solid var(--stroke);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 250, 244, 0.48)),
+    var(--glass);
+  border: 1px solid var(--glass-stroke);
   border-radius: 28px;
   box-shadow: var(--shadow);
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
 }
 
 .hero {
@@ -165,6 +174,77 @@ a {
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(99, 70, 33, 0.08);
   border-radius: 18px;
+}
+
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  border-radius: 999px;
+  color: var(--text);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  user-select: none;
+}
+
+.ui-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring), var(--button-shadow);
+}
+
+.ui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ui-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.ui-button-primary {
+  color: white;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 42%),
+    linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+  box-shadow: 0 14px 30px rgba(12, 124, 116, 0.24);
+}
+
+.ui-button-glass {
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: var(--button-shadow);
+}
+
+.ui-button-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.ui-button-danger {
+  color: #b42318;
+  background: rgba(180, 35, 24, 0.08);
+}
+
+.ui-button-sm {
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 0.82rem;
+}
+
+.ui-button-md {
+  min-height: 42px;
+  padding: 9px 16px;
+}
+
+.ui-button-lg {
+  min-height: 52px;
+  padding: 12px 18px;
+}
+
+.ui-button-icon {
+  width: 38px;
+  height: 38px;
+  padding: 0;
 }
 
 .stat-card,
