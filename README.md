@@ -40,11 +40,13 @@ npm run dev
 OPENAI_API_KEY=your_api_key_here
 APP_AUTH_PASSWORD=your_access_password
 AUTH_SECRET=long_random_secret
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_token
 ```
 
 - `OPENAI_API_KEY` חובה כדי שהצ'אט יעבוד מול OpenAI
 - `APP_AUTH_PASSWORD` אופציונלי אבל מומלץ. אם הוא מוגדר, הכניסה הראשונית לאפליקציה תדרוש התחברות.
 - `AUTH_SECRET` מומלץ כאשר מפעילים auth כדי לחתום את עוגיית ההתחברות.
+- `BLOB_READ_WRITE_TOKEN` נדרש כדי לשמור מסמכים וקבצים ב-Vercel Blob.
 
 אם אין `OPENAI_API_KEY`, המערכת תחזור זמנית ל-fallback מקומי ותציג הערה טכנית בצ'אט.
 
@@ -119,6 +121,7 @@ AUTH_SECRET=long_random_secret
 
 - הצ'אט מחובר ל-OpenAI דרך `Responses API`
 - המודל בקוד מוגדר במפורש ל-`gpt-5.4-mini`
+- מסמכים וקבצים נשמרים בענן דרך `Vercel Blob`
 - המפה היא ויזואליזציה מותאמת אישית ולא שירות מפות חיצוני
 - הנתונים הקיימים עוברים סינון בסיסי כדי להתעלם מפריטים שמחוץ לטווח הטיול
 

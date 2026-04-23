@@ -3,11 +3,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
-  deleteAttachment,
-  listAttachments,
-  saveAttachments,
   type DayAttachment,
-} from "@/lib/browser-attachments";
+} from "@/lib/attachments";
 import {
   buildAiAnswer,
   countLockedItems,
@@ -86,7 +83,12 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   useEffect(() => {
     let active = true;
 
-    listAttachments(selectedDate)
+    fetch(`/api/attachments?dayDate=${encodeURIComponent(selectedDate)}`)
+      .then(async (response) => {
+        const payload = (await response.json()) as { attachments?: DayAttachment[]; error?: string };
+        if (!response.ok) throw new Error(payload.error || "Failed to load attachments");
+        return payload.attachments || [];
+      })
       .then((items) => {
         if (!active) return;
         setAttachments(items);
@@ -146,30 +148,54 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
     if (!files.length) return;
 
     try {
-      await saveAttachments(selectedDate, files);
-      const items = await listAttachments(selectedDate);
-      setAttachments(items);
+      const formData = new FormData();
+      formData.append("dayDate", selectedDate);
+      files.forEach((file) => formData.append("files", file));
+
+      const response = await fetch("/api/attachments", {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = (await response.json()) as { attachments?: DayAttachment[]; error?: string };
+      if (!response.ok) throw new Error(payload.error || "Upload failed");
+
+      const listResponse = await fetch(`/api/attachments?dayDate=${encodeURIComponent(selectedDate)}`);
+      const listPayload = (await listResponse.json()) as { attachments?: DayAttachment[]; error?: string };
+      if (!listResponse.ok) throw new Error(listPayload.error || "Failed to refresh attachments");
+
+      setAttachments(listPayload.attachments || []);
       setAttachmentsError("");
       if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch {
-      setAttachmentsError("שמירת הקבצים נכשלה. נסה שוב.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "שמירת הקבצים נכשלה. נסה שוב.";
+      setAttachmentsError(message);
     }
   }
 
-  async function handleDeleteAttachment(id: string) {
+  async function handleDeleteAttachment(url: string) {
     try {
-      await deleteAttachment(id);
-      const items = await listAttachments(selectedDate);
-      setAttachments(items);
-    } catch {
-      setAttachmentsError("מחיקת הקובץ נכשלה.");
+      const response = await fetch("/api/attachments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Delete failed");
+
+      const listResponse = await fetch(`/api/attachments?dayDate=${encodeURIComponent(selectedDate)}`);
+      const listPayload = (await listResponse.json()) as { attachments?: DayAttachment[]; error?: string };
+      if (!listResponse.ok) throw new Error(listPayload.error || "Failed to refresh attachments");
+
+      setAttachments(listPayload.attachments || []);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "מחיקת הקובץ נכשלה.";
+      setAttachmentsError(message);
     }
   }
 
   function handleOpenAttachment(attachment: DayAttachment) {
-    const url = URL.createObjectURL(attachment.file);
-    window.open(url, "_blank", "noopener,noreferrer");
-    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    window.open(attachment.downloadUrl || attachment.url, "_blank", "noopener,noreferrer");
   }
 
   function formatAttachmentSize(size: number) {
@@ -361,16 +387,16 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
                 <div className="attachments-empty">עדיין אין קבצים ליום הזה.</div>
               ) : null}
               {!attachmentsLoading && attachments.map((attachment) => (
-                <div key={attachment.id} className="attachment-item">
+                <div key={attachment.url} className="attachment-item">
                   <button type="button" className="attachment-main" onClick={() => handleOpenAttachment(attachment)}>
                     <strong>{attachment.name}</strong>
-                    <span>{attachment.type || "קובץ"}</span>
+                    <span>{attachment.contentType || "קובץ"}</span>
                     <span>{formatAttachmentSize(attachment.size)}</span>
                   </button>
                   <button
                     type="button"
                     className="attachment-delete"
-                    onClick={() => handleDeleteAttachment(attachment.id)}
+                    onClick={() => handleDeleteAttachment(attachment.url)}
                     aria-label={`מחק ${attachment.name}`}
                   >
                     מחק
