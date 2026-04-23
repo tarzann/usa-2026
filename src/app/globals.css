@@ -92,7 +92,7 @@ a {
 
 .workspace {
   grid-template-columns: minmax(330px, 0.95fr) minmax(360px, 1.05fr);
-  align-items: start;
+  align-items: stretch;
 }
 
 .detail-grid {
@@ -197,6 +197,16 @@ a {
   padding: 20px;
 }
 
+.timeline-card,
+.map-card {
+  min-height: 590px;
+}
+
+.timeline-card {
+  display: flex;
+  flex-direction: column;
+}
+
 .vision-card {
   background: rgba(45, 33, 19, 0.95);
   color: #fff7f1;
@@ -239,7 +249,8 @@ a {
 }
 
 .timeline-list {
-  max-height: 548px;
+  flex: 1;
+  max-height: none;
   overflow: auto;
 }
 
@@ -587,6 +598,7 @@ a {
 
   .timeline-list {
     max-height: 480px;
+    flex: initial;
   }
 
   .map-frame {

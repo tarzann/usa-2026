@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   buildAiAnswer,
   countLockedItems,
@@ -38,6 +38,7 @@ const quickPrompts = [
 ];
 
 export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
+  const timelineListRef = useRef<HTMLDivElement | null>(null);
   const [selectedDate, setSelectedDate] = useState(days[0]?.date ?? "");
   const [chatInput, setChatInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -52,7 +53,19 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
   const nextDay = days[selectedDay.index + 1];
   const progress = Math.round(getProgressRatio(tripData) * 100);
-  const orderedDays = [selectedDay, ...days.filter((day) => day.date !== selectedDay.date)];
+
+  useEffect(() => {
+    const container = timelineListRef.current;
+    if (!container) return;
+
+    const selectedCard = container.querySelector<HTMLButtonElement>(`[data-date="${selectedDate}"]`);
+    if (!selectedCard) return;
+
+    container.scrollTo({
+      top: selectedCard.offsetTop - container.offsetTop,
+      behavior: "smooth",
+    });
+  }, [selectedDate]);
 
   function submitPrompt(prompt: string) {
     if (!prompt.trim()) return;
@@ -145,14 +158,15 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
             </div>
             <span className="badge">{days.length} ימים</span>
           </div>
-          <div className="timeline-list">
-            {orderedDays.map((day) => {
+          <div className="timeline-list" ref={timelineListRef}>
+            {days.map((day) => {
               const preview = day.events[0] ? day.events[0].details.split("|")[0].trim() : day.summary;
 
               return (
                 <button
                   key={day.date}
                   type="button"
+                  data-date={day.date}
                   className={`day-card ${day.date === selectedDate ? "active" : ""}`}
                   onClick={() => setSelectedDate(day.date)}
                 >
