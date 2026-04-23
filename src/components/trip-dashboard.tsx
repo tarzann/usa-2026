@@ -40,6 +40,14 @@ type DayPlanItem = {
   focusDetails: string;
 };
 
+type SmartBriefItem = {
+  id: string;
+  title: string;
+  body: string;
+  tone: "attention" | "positive" | "neutral";
+  prompt: string;
+};
+
 const dayPlanPeriods: Array<{ id: DayPlanPeriod; title: string; helper: string }> = [
   { id: "morning", title: "בוקר", helper: "פתיחה נכונה ליום" },
   { id: "afternoon", title: "צהריים", helper: "עומק הפעילות" },
@@ -85,6 +93,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const progress = Math.round(getProgressRatio(tripData) * 100);
   const dayPlan = buildDayPlan(selectedDay);
   const dayStats = getDayStats(selectedDay);
+  const smartBrief = buildSmartBrief(selectedDay, nextDay, attachments.length);
 
   function selectDay(date: string) {
     setAttachmentsLoading(true);
@@ -470,9 +479,26 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
           <aside className="logistics-card">
             <div className="card-head">
               <div>
-                <h3>לוגיסטיקה חכמה</h3>
-                <p>כאן אמורים להופיע בהמשך זמני נסיעה, check-in/out, חניות, מסמכים והתרעות.</p>
+                <h3>Brief חכם ליום</h3>
+                <p>המערכת מזהה לבד נקודות שדורשות תשומת לב, ואז מאפשרת לפתוח שיחה ממוקדת עם ה-AI.</p>
               </div>
+            </div>
+            <div className="smart-brief-list">
+              {smartBrief.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`smart-brief-item smart-brief-${item.tone}`}
+                  onClick={() => {
+                    setIsChatOpen(true);
+                    submitPrompt(item.prompt);
+                  }}
+                >
+                  <span className="smart-brief-kicker">{item.title}</span>
+                  <span className="smart-brief-body">{item.body}</span>
+                  <span className="smart-brief-action">שאל את Trip AI</span>
+                </button>
+              ))}
             </div>
             <div className="logistics-list">
               <div className="logistics-item">
@@ -668,6 +694,65 @@ function getDayStats(day: TripDay) {
     locked: day.flights.length + day.hotels.length + day.events.filter((event) => event.locked).length,
     flexible: day.events.filter((event) => !event.locked).length,
   };
+}
+
+function buildSmartBrief(day: TripDay, nextDay: TripDay | undefined, attachmentsCount: number): SmartBriefItem[] {
+  const brief: SmartBriefItem[] = [];
+  const anchorCount = day.flights.length + day.events.length + day.hotels.length;
+
+  if (day.flights.length || day.travelMode !== "יום יעד") {
+    brief.push({
+      id: "transition",
+      title: "יום מעבר",
+      body: nextDay
+        ? `היום מחבר בין ${day.location.name} ל-${nextDay.location.name}. כדאי לוודא זמני יציאה, נסיעה ומרווחי ביטחון.`
+        : "זה יום הסיום של המסלול. כדאי לוודא טיסה, החזרת רכב וזמני הגעה לשדה.",
+      tone: "attention",
+      prompt: `תכין לי brief לוגיסטי ל-${formatDate(day.date)} כולל זמני מעבר, מרווחי ביטחון ומה אסור לפספס.`,
+    });
+  }
+
+  if (!day.hotels.length && !day.flights.length) {
+    brief.push({
+      id: "lodging",
+      title: "לינה לבדיקה",
+      body: "לא משויכת לינה ליום הזה. יכול להיות שזה תקין, אבל זו נקודה שכדאי לאמת לפני הטיול.",
+      tone: "attention",
+      prompt: `בדוק את יום ${formatDate(day.date)} והצע מה צריך לוודא לגבי לינה ומיקום בסיס.`,
+    });
+  }
+
+  if (!attachmentsCount && (day.flights.length || day.hotels.length || day.events.some((event) => event.locked))) {
+    brief.push({
+      id: "documents",
+      title: "מסמכים חסרים",
+      body: "יש פריטים סגורים ביום הזה, אבל עדיין לא הועלו קבצים. מומלץ לצרף כרטיסים, אישורים או הזמנות.",
+      tone: "neutral",
+      prompt: `איזה מסמכים כדאי לשמור עבור ${formatDate(day.date)} לפי הטיסות, הלינה והאירועים של היום?`,
+    });
+  }
+
+  if (anchorCount >= 3) {
+    brief.push({
+      id: "load",
+      title: "יום עמוס",
+      body: `זוהו ${anchorCount} עוגנים ביום אחד. שווה לבדוק אם יש מספיק מרווח נשימה בין הפריטים.`,
+      tone: "attention",
+      prompt: `בדוק אם ${formatDate(day.date)} עמוס מדי והצע סידור מאוזן יותר לפי בוקר, צהריים וערב.`,
+    });
+  }
+
+  if (!brief.length) {
+    brief.push({
+      id: "open-opportunity",
+      title: "יום גמיש",
+      body: "אין הרבה אילוצים קשיחים. זה מקום טוב לתת ל-AI להציע מסלול קליל לפי האזור והקצב שלכם.",
+      tone: "positive",
+      prompt: `בנה לי הצעה נעימה וגמישה ל-${formatDate(day.date)} באזור ${day.location.name}, בלי להעמיס.`,
+    });
+  }
+
+  return brief.slice(0, 3);
 }
 
 function resolveEventLocation(label: string, details: string, fallbackDay: TripDay): FocusedMapLocation {
