@@ -20,14 +20,13 @@ export async function GET(request: Request) {
       .map((blob) => {
         const name = extractAttachmentName(blob.pathname);
         return {
-        url: blob.url,
-        pathname: blob.pathname,
-        size: blob.size,
-        uploadedAt: blob.uploadedAt.toISOString(),
-        contentType: inferAttachmentType(name),
-        downloadUrl: blob.downloadUrl,
-        name,
-      };
+          url: blob.url,
+          pathname: blob.pathname,
+          size: blob.size,
+          uploadedAt: blob.uploadedAt.toISOString(),
+          contentType: inferAttachmentType(name),
+          name,
+        };
       })
       .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 
@@ -56,7 +55,7 @@ export async function POST(request: Request) {
       files.map(async (file) => {
         const pathname = `${buildAttachmentPrefix(dayDate)}${Date.now()}-${file.name}`;
         const blob = await put(pathname, file, {
-          access: "public",
+          access: "private",
           addRandomSuffix: false,
           contentType: file.type || "application/octet-stream",
         });
@@ -67,7 +66,6 @@ export async function POST(request: Request) {
           size: file.size,
           uploadedAt: new Date().toISOString(),
           contentType: file.type || "application/octet-stream",
-          downloadUrl: blob.downloadUrl,
           name: extractAttachmentName(blob.pathname),
         };
       }),

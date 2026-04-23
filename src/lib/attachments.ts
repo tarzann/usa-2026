@@ -4,7 +4,6 @@ export type DayAttachment = {
   size: number;
   uploadedAt: string;
   contentType: string;
-  downloadUrl?: string;
   name: string;
 };
 

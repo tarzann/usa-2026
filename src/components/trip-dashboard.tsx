@@ -195,7 +195,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   }
 
   function handleOpenAttachment(attachment: DayAttachment) {
-    window.open(attachment.downloadUrl || attachment.url, "_blank", "noopener,noreferrer");
+    window.open(`/api/attachments/file?pathname=${encodeURIComponent(attachment.pathname)}`, "_blank", "noopener,noreferrer");
   }
 
   function formatAttachmentSize(size: number) {
