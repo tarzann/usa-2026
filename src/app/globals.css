@@ -1,20 +1,20 @@
 :root {
-  --bg: #f6efe3;
-  --bg-soft: #fffaf2;
-  --panel: rgba(255, 250, 244, 0.88);
-  --stroke: rgba(99, 70, 33, 0.12);
-  --text: #2f2619;
-  --muted: #7a6a55;
-  --brand: #0c7c74;
-  --brand-strong: #095f59;
-  --accent: #d56f3e;
-  --success: #37795d;
-  --shadow: 0 18px 48px rgba(66, 44, 15, 0.12);
-  --glass: rgba(255, 250, 244, 0.72);
+  --bg: #eef6f8;
+  --bg-soft: #fbfdff;
+  --panel: rgba(255, 255, 255, 0.86);
+  --stroke: rgba(38, 77, 91, 0.1);
+  --text: #17252f;
+  --muted: #667987;
+  --brand: #2aa6a1;
+  --brand-strong: #16817d;
+  --accent: #5b8def;
+  --success: #3aa77b;
+  --shadow: 0 18px 46px rgba(34, 79, 98, 0.1);
+  --glass: rgba(255, 255, 255, 0.72);
   --glass-strong: rgba(255, 255, 255, 0.82);
-  --glass-stroke: rgba(255, 255, 255, 0.58);
-  --focus-ring: 0 0 0 4px rgba(12, 124, 116, 0.16);
-  --button-shadow: 0 10px 24px rgba(66, 44, 15, 0.1);
+  --glass-stroke: rgba(255, 255, 255, 0.74);
+  --focus-ring: 0 0 0 4px rgba(42, 166, 161, 0.16);
+  --button-shadow: 0 10px 24px rgba(34, 79, 98, 0.09);
 }
 
 * {
@@ -34,9 +34,9 @@ body {
   font-family: var(--font-assistant), Arial, sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(12, 124, 116, 0.16), transparent 32%),
-    radial-gradient(circle at top right, rgba(213, 111, 62, 0.18), transparent 24%),
-    linear-gradient(180deg, #fff8ed 0%, var(--bg) 54%, #f2eadf 100%);
+    radial-gradient(circle at 12% 0%, rgba(91, 141, 239, 0.14), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(42, 166, 161, 0.16), transparent 24%),
+    linear-gradient(180deg, #fbfdff 0%, var(--bg) 58%, #f7fbfc 100%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -73,7 +73,7 @@ a {
 .logistics-card,
 .tasks-card {
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 250, 244, 0.48)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(246, 251, 253, 0.52)),
     var(--glass);
   border: 1px solid var(--glass-stroke);
   border-radius: 28px;
@@ -120,7 +120,7 @@ a {
 
 .eyebrow {
   padding: 7px 12px;
-  background: rgba(12, 124, 116, 0.1);
+  background: rgba(42, 166, 161, 0.1);
   color: var(--brand-strong);
   margin-bottom: 16px;
 }
@@ -171,8 +171,8 @@ a {
 .event-card,
 .logistics-item,
 .task-item {
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(99, 70, 33, 0.08);
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(38, 77, 91, 0.08);
   border-radius: 18px;
 }
 
@@ -207,7 +207,7 @@ a {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 42%),
     linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
-  box-shadow: 0 14px 30px rgba(12, 124, 116, 0.24);
+  box-shadow: 0 14px 30px rgba(42, 166, 161, 0.2);
 }
 
 .ui-button-glass {
@@ -262,8 +262,8 @@ a {
 }
 
 .event-card-button:hover {
-  border-color: rgba(12, 124, 116, 0.24);
-  box-shadow: 0 12px 24px rgba(66, 44, 15, 0.08);
+  border-color: rgba(42, 166, 161, 0.24);
+  box-shadow: 0 12px 24px rgba(34, 79, 98, 0.08);
 }
 
 .stat-label,
@@ -299,8 +299,10 @@ a {
 }
 
 .vision-card {
-  background: rgba(45, 33, 19, 0.95);
-  color: #fff7f1;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.2), transparent 24%),
+    linear-gradient(145deg, #17323f 0%, #1b5662 100%);
+  color: #f6fcff;
   display: grid;
   gap: 14px;
 }
@@ -319,8 +321,8 @@ a {
 .vision-item {
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .card-head,
@@ -336,7 +338,7 @@ a {
 .badge,
 .chip {
   padding: 6px 10px;
-  background: rgba(12, 124, 116, 0.1);
+  background: rgba(42, 166, 161, 0.1);
   color: var(--brand-strong);
 }
 
@@ -358,8 +360,8 @@ a {
 
 .day-card:hover,
 .day-card.active {
-  border-color: rgba(12, 124, 116, 0.22);
-  box-shadow: 0 14px 30px rgba(66, 44, 15, 0.08);
+  border-color: rgba(42, 166, 161, 0.22);
+  box-shadow: 0 14px 30px rgba(34, 79, 98, 0.08);
 }
 
 .day-date {
@@ -412,9 +414,9 @@ a {
 
 .map-frame {
   background:
-    radial-gradient(circle at 20% 30%, rgba(12, 124, 116, 0.16), transparent 22%),
-    radial-gradient(circle at 80% 72%, rgba(213, 111, 62, 0.18), transparent 18%),
-    linear-gradient(180deg, #fbf5ec 0%, #f0e7da 100%);
+    radial-gradient(circle at 20% 30%, rgba(42, 166, 161, 0.14), transparent 22%),
+    radial-gradient(circle at 80% 72%, rgba(91, 141, 239, 0.16), transparent 18%),
+    linear-gradient(180deg, #fbfdff 0%, #edf6f8 100%);
   border-radius: 24px;
   min-height: 400px;
   overflow: hidden;
@@ -429,8 +431,8 @@ a {
 
 .real-map-frame {
   padding: 0;
-  border: 1px solid rgba(99, 70, 33, 0.08);
-  background: #f3ece2;
+  border: 1px solid rgba(38, 77, 91, 0.08);
+  background: #edf6f8;
 }
 
 .real-map,
@@ -446,9 +448,9 @@ a {
   place-items: center;
   color: var(--muted);
   background:
-    radial-gradient(circle at 20% 30%, rgba(12, 124, 116, 0.16), transparent 22%),
-    radial-gradient(circle at 80% 72%, rgba(213, 111, 62, 0.18), transparent 18%),
-    linear-gradient(180deg, #fbf5ec 0%, #f0e7da 100%);
+    radial-gradient(circle at 20% 30%, rgba(42, 166, 161, 0.14), transparent 22%),
+    radial-gradient(circle at 80% 72%, rgba(91, 141, 239, 0.16), transparent 18%),
+    linear-gradient(180deg, #fbfdff 0%, #edf6f8 100%);
 }
 
 .selected-map-label {
@@ -457,9 +459,9 @@ a {
   min-width: 140px;
   padding: 10px 12px;
   border-radius: 14px;
-  background: rgba(47, 38, 25, 0.9);
+  background: rgba(23, 37, 47, 0.9);
   color: white;
-  box-shadow: 0 12px 24px rgba(32, 23, 12, 0.28);
+  box-shadow: 0 12px 24px rgba(13, 36, 48, 0.24);
   transform: translateY(-62px);
 }
 
@@ -497,7 +499,7 @@ a {
   padding: 8px 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.58);
-  border: 1px solid rgba(99, 70, 33, 0.08);
+  border: 1px solid rgba(38, 77, 91, 0.08);
 }
 
 .day-intelligence-strip span {
@@ -530,7 +532,7 @@ a {
   padding: 10px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.34);
-  border: 1px solid rgba(99, 70, 33, 0.08);
+  border: 1px solid rgba(38, 77, 91, 0.08);
 }
 
 .plan-period-head {
@@ -559,7 +561,7 @@ a {
   min-width: 24px;
   height: 24px;
   border-radius: 999px;
-  background: rgba(12, 124, 116, 0.1);
+  background: rgba(42, 166, 161, 0.1);
   color: var(--brand-strong);
   font-weight: 900;
 }
@@ -572,7 +574,7 @@ a {
 .plan-item,
 .plan-empty {
   border-radius: 16px;
-  border: 1px solid rgba(99, 70, 33, 0.08);
+  border: 1px solid rgba(38, 77, 91, 0.08);
   background: rgba(255, 255, 255, 0.7);
   padding: 10px 11px;
 }
@@ -586,8 +588,8 @@ a {
 
 .plan-item-button:hover {
   transform: translateY(-2px);
-  border-color: rgba(12, 124, 116, 0.24);
-  box-shadow: 0 12px 22px rgba(66, 44, 15, 0.08);
+  border-color: rgba(42, 166, 161, 0.24);
+  box-shadow: 0 12px 22px rgba(34, 79, 98, 0.08);
 }
 
 .plan-item-top {
@@ -611,7 +613,7 @@ a {
   min-width: 28px;
   min-height: 24px;
   padding: 3px 7px;
-  background: rgba(12, 124, 116, 0.1);
+  background: rgba(42, 166, 161, 0.1);
   color: var(--brand-strong);
   font-size: 0.72rem;
 }
@@ -638,15 +640,15 @@ a {
 }
 
 .plan-item-locked {
-  border-right: 4px solid rgba(12, 124, 116, 0.42);
+  border-right: 4px solid rgba(42, 166, 161, 0.38);
 }
 
 .plan-item-planned {
-  border-right: 4px solid rgba(213, 111, 62, 0.36);
+  border-right: 4px solid rgba(91, 141, 239, 0.34);
 }
 
 .plan-item-flexible {
-  border-right: 4px solid rgba(55, 121, 93, 0.3);
+  border-right: 4px solid rgba(58, 167, 123, 0.3);
 }
 
 .plan-item-open {
@@ -668,14 +670,14 @@ a {
   color: inherit;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(99, 70, 33, 0.08);
+  border: 1px solid rgba(38, 77, 91, 0.08);
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .smart-brief-item:hover {
   transform: translateY(-1px);
-  border-color: rgba(12, 124, 116, 0.22);
-  box-shadow: 0 10px 22px rgba(66, 44, 15, 0.07);
+  border-color: rgba(42, 166, 161, 0.22);
+  box-shadow: 0 10px 22px rgba(34, 79, 98, 0.07);
 }
 
 .smart-brief-kicker {
@@ -693,22 +695,22 @@ a {
   justify-self: start;
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(12, 124, 116, 0.1);
+  background: rgba(42, 166, 161, 0.1);
   color: var(--brand-strong);
   font-size: 0.72rem;
   font-weight: 800;
 }
 
 .smart-brief-attention {
-  border-right: 4px solid rgba(213, 111, 62, 0.42);
+  border-right: 4px solid rgba(91, 141, 239, 0.38);
 }
 
 .smart-brief-positive {
-  border-right: 4px solid rgba(55, 121, 93, 0.36);
+  border-right: 4px solid rgba(58, 167, 123, 0.34);
 }
 
 .smart-brief-neutral {
-  border-right: 4px solid rgba(12, 124, 116, 0.3);
+  border-right: 4px solid rgba(42, 166, 161, 0.3);
 }
 
 .task-item {
@@ -726,7 +728,7 @@ a {
   width: 100%;
   padding: 12px;
   border-radius: 16px;
-  border: 1px dashed rgba(12, 124, 116, 0.35);
+  border: 1px dashed rgba(42, 166, 161, 0.32);
   background: rgba(255, 255, 255, 0.75);
 }
 
@@ -753,7 +755,7 @@ a {
   padding: 12px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(99, 70, 33, 0.08);
+  border: 1px solid rgba(38, 77, 91, 0.08);
 }
 
 .attachment-main {
@@ -815,7 +817,7 @@ a {
 }
 
 .message.user {
-  background: rgba(12, 124, 116, 0.1);
+  background: rgba(42, 166, 161, 0.1);
 }
 
 .message-role {
@@ -838,7 +840,7 @@ a {
   resize: vertical;
   padding: 14px 16px;
   border-radius: 18px;
-  border: 1px solid rgba(99, 70, 33, 0.12);
+  border: 1px solid rgba(38, 77, 91, 0.12);
   background: rgba(255, 255, 255, 0.82);
 }
 
@@ -875,9 +877,9 @@ a {
 .floating-chat {
   width: min(420px, calc(100vw - 28px));
   max-height: min(720px, calc(100vh - 120px));
-  box-shadow: 0 26px 70px rgba(32, 23, 12, 0.2);
-  border: 1px solid rgba(99, 70, 33, 0.14);
-  background: rgba(255, 249, 242, 0.97);
+  box-shadow: 0 26px 70px rgba(13, 36, 48, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  background: rgba(251, 253, 255, 0.94);
 }
 
 .floating-chat-actions {
@@ -890,7 +892,7 @@ a {
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  background: rgba(47, 38, 25, 0.08);
+  background: rgba(23, 37, 47, 0.08);
   color: var(--text);
   font-weight: 700;
 }
@@ -903,7 +905,7 @@ a {
   border-radius: 999px;
   background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
   color: white;
-  box-shadow: 0 14px 30px rgba(12, 124, 116, 0.28);
+  box-shadow: 0 14px 30px rgba(42, 166, 161, 0.22);
 }
 
 .assistant-launcher-icon {
@@ -952,7 +954,7 @@ a {
   min-height: 52px;
   padding: 14px 16px;
   border-radius: 18px;
-  border: 1px solid rgba(99, 70, 33, 0.12);
+  border: 1px solid rgba(38, 77, 91, 0.12);
   background: rgba(255, 255, 255, 0.82);
 }
 
