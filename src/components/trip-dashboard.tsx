@@ -394,6 +394,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
           <div className="daily-plan-board">
             {dayPlanPeriods.map((period) => {
               const items = dayPlan.filter((item) => item.period === period.id);
+              if (!items.length) return null;
 
               return (
                 <section key={period.id} className="plan-period">

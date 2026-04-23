@@ -405,30 +405,30 @@ a {
 .day-intelligence-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin: 16px 0 18px;
+  gap: 8px;
+  margin: 14px 0 16px;
 }
 
 .day-intelligence-strip div {
-  display: grid;
-  gap: 2px;
-  padding: 12px;
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 20% 20%, rgba(12, 124, 116, 0.12), transparent 40%),
-    rgba(255, 255, 255, 0.74);
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
   border: 1px solid rgba(99, 70, 33, 0.08);
 }
 
 .day-intelligence-strip span {
-  font-size: 1.28rem;
+  font-size: 0.95rem;
   font-weight: 900;
   color: var(--brand-strong);
 }
 
 .day-intelligence-strip strong {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 .section-title {
@@ -439,17 +439,17 @@ a {
 
 .daily-plan-board {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .plan-period {
   min-width: 0;
   display: grid;
   align-content: start;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.45);
+  gap: 8px;
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.34);
   border: 1px solid rgba(99, 70, 33, 0.08);
 }
 
@@ -461,7 +461,7 @@ a {
 }
 
 .plan-period-head h4 {
-  font-size: 1rem;
+  font-size: 0.96rem;
   margin-bottom: 2px;
 }
 
@@ -476,8 +476,8 @@ a {
 .plan-period-head > span {
   display: grid;
   place-items: center;
-  min-width: 28px;
-  height: 28px;
+  min-width: 24px;
+  height: 24px;
   border-radius: 999px;
   background: rgba(12, 124, 116, 0.1);
   color: var(--brand-strong);
@@ -486,15 +486,15 @@ a {
 
 .plan-period-list {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .plan-item,
 .plan-empty {
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid rgba(99, 70, 33, 0.08);
-  background: rgba(255, 255, 255, 0.82);
-  padding: 11px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 10px 11px;
 }
 
 .plan-item-button {
@@ -515,7 +515,7 @@ a {
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
-  margin-bottom: 7px;
+  margin-bottom: 5px;
 }
 
 .plan-item-icon,
@@ -528,50 +528,45 @@ a {
 }
 
 .plan-item-icon {
-  min-width: 32px;
-  min-height: 28px;
-  padding: 4px 8px;
+  min-width: 28px;
+  min-height: 24px;
+  padding: 3px 7px;
   background: rgba(12, 124, 116, 0.1);
   color: var(--brand-strong);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
 }
 
 .plan-status {
-  padding: 4px 8px;
+  padding: 3px 7px;
   background: rgba(122, 106, 85, 0.1);
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
 }
 
 .plan-item-title {
   min-width: 0;
   font-weight: 900;
   line-height: 1.25;
+  font-size: 0.92rem;
 }
 
 .plan-item-body {
   color: var(--text);
-  line-height: 1.5;
-  font-size: 0.9rem;
-  margin-bottom: 8px;
+  line-height: 1.45;
+  font-size: 0.84rem;
+  margin-bottom: 6px;
 }
 
 .plan-item-locked {
-  background:
-    linear-gradient(135deg, rgba(12, 124, 116, 0.12), transparent 42%),
-    rgba(255, 255, 255, 0.86);
+  border-right: 4px solid rgba(12, 124, 116, 0.42);
 }
 
 .plan-item-planned {
-  background:
-    linear-gradient(135deg, rgba(213, 111, 62, 0.12), transparent 42%),
-    rgba(255, 255, 255, 0.86);
+  border-right: 4px solid rgba(213, 111, 62, 0.36);
 }
 
 .plan-item-flexible {
-  background:
-    linear-gradient(135deg, rgba(55, 121, 93, 0.1), transparent 42%),
-    rgba(255, 255, 255, 0.86);
+  border-right: 4px solid rgba(55, 121, 93, 0.3);
 }
 
 .plan-item-open {
