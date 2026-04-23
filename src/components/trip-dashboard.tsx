@@ -360,54 +360,44 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
               </div>
             ) : null}
           </div>
+
+          <div className="section-title" style={{ marginTop: "18px" }}>מסמכים וקבצים</div>
+          <div className="attachments-actions">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="attachments-input"
+              multiple
+              onChange={handleFileSelect}
+            />
+          </div>
+          {attachmentsError ? <div className="attachments-error">{attachmentsError}</div> : null}
+          <div className="attachments-list">
+            {attachmentsLoading ? <div className="attachments-empty">טוען קבצים...</div> : null}
+            {!attachmentsLoading && !attachments.length ? (
+              <div className="attachments-empty">עדיין אין קבצים ליום הזה.</div>
+            ) : null}
+            {!attachmentsLoading && attachments.map((attachment) => (
+              <div key={attachment.url} className="attachment-item">
+                <button type="button" className="attachment-main" onClick={() => handleOpenAttachment(attachment)}>
+                  <strong>{attachment.name}</strong>
+                  <span>{attachment.contentType || "קובץ"}</span>
+                  <span>{formatAttachmentSize(attachment.size)}</span>
+                </button>
+                <button
+                  type="button"
+                  className="attachment-delete"
+                  onClick={() => handleDeleteAttachment(attachment.url)}
+                  aria-label={`מחק ${attachment.name}`}
+                >
+                  מחק
+                </button>
+              </div>
+            ))}
+          </div>
         </section>
 
         <div>
-          <aside className="attachments-card">
-            <div className="card-head">
-              <div>
-                <h3>מסמכים וקבצים</h3>
-                <p>אפשר לשמור כאן כרטיסי טיסה, אישורי הזמנה, כרטיסים לפארקים, קבצי PDF ותמונות של היום הזה.</p>
-              </div>
-              <span className="badge">{attachments.length} קבצים</span>
-            </div>
-            <div className="attachments-actions">
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="attachments-input"
-                multiple
-                onChange={handleFileSelect}
-              />
-            </div>
-            {attachmentsError ? <div className="attachments-error">{attachmentsError}</div> : null}
-            <div className="attachments-list">
-              {attachmentsLoading ? <div className="attachments-empty">טוען קבצים...</div> : null}
-              {!attachmentsLoading && !attachments.length ? (
-                <div className="attachments-empty">עדיין אין קבצים ליום הזה.</div>
-              ) : null}
-              {!attachmentsLoading && attachments.map((attachment) => (
-                <div key={attachment.url} className="attachment-item">
-                  <button type="button" className="attachment-main" onClick={() => handleOpenAttachment(attachment)}>
-                    <strong>{attachment.name}</strong>
-                    <span>{attachment.contentType || "קובץ"}</span>
-                    <span>{formatAttachmentSize(attachment.size)}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="attachment-delete"
-                    onClick={() => handleDeleteAttachment(attachment.url)}
-                    aria-label={`מחק ${attachment.name}`}
-                  >
-                    מחק
-                  </button>
-                </div>
-              ))}
-            </div>
-          </aside>
-
-          <div className="gap-block" />
-
           <aside className="logistics-card">
             <div className="card-head">
               <div>

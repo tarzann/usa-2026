@@ -65,7 +65,6 @@ a {
 .map-card,
 .chat-card,
 .detail-card,
-.attachments-card,
 .logistics-card,
 .tasks-card {
   background: var(--panel);
@@ -193,7 +192,6 @@ a {
 .map-card,
 .chat-card,
 .detail-card,
-.attachments-card,
 .logistics-card,
 .tasks-card {
   padding: 20px;
