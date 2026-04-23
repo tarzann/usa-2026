@@ -65,6 +65,7 @@ a {
 .map-card,
 .chat-card,
 .detail-card,
+.attachments-card,
 .logistics-card,
 .tasks-card {
   background: var(--panel);
@@ -192,6 +193,7 @@ a {
 .map-card,
 .chat-card,
 .detail-card,
+.attachments-card,
 .logistics-card,
 .tasks-card {
   padding: 20px;
@@ -217,6 +219,7 @@ a {
 .vision-list,
 .timeline-list,
 .event-list,
+.attachments-list,
 .logistics-list,
 .task-list,
 .chat-messages {
@@ -401,6 +404,65 @@ a {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 12px;
   padding: 14px 16px;
+}
+
+.attachments-actions {
+  margin-bottom: 12px;
+}
+
+.attachments-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px dashed rgba(12, 124, 116, 0.35);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.attachments-error,
+.attachments-empty {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--muted);
+}
+
+.attachments-error {
+  color: #b42318;
+  background: rgba(180, 35, 24, 0.08);
+  border: 1px solid rgba(180, 35, 24, 0.12);
+  margin-bottom: 12px;
+}
+
+.attachment-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(99, 70, 33, 0.08);
+}
+
+.attachment-main {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+  background: transparent;
+  color: var(--text);
+}
+
+.attachment-main span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.attachment-delete {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(180, 35, 24, 0.08);
+  color: #b42318;
+  font-weight: 700;
 }
 
 .task-status {

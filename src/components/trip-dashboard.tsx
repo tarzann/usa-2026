@@ -3,6 +3,12 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
+  deleteAttachment,
+  listAttachments,
+  saveAttachments,
+  type DayAttachment,
+} from "@/lib/browser-attachments";
+import {
   buildAiAnswer,
   countLockedItems,
   countTransportDays,
@@ -39,9 +45,13 @@ const quickPrompts = [
 
 export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const timelineListRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedDate, setSelectedDate] = useState(days[0]?.date ?? "");
   const [chatInput, setChatInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [attachments, setAttachments] = useState<DayAttachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(true);
+  const [attachmentsError, setAttachmentsError] = useState("");
   const [chatHistory, setChatHistory] = useState<Message[]>([
     {
       role: "assistant",
@@ -54,6 +64,12 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const nextDay = days[selectedDay.index + 1];
   const progress = Math.round(getProgressRatio(tripData) * 100);
 
+  function selectDay(date: string) {
+    setAttachmentsLoading(true);
+    setAttachmentsError("");
+    setSelectedDate(date);
+  }
+
   useEffect(() => {
     const container = timelineListRef.current;
     if (!container) return;
@@ -65,6 +81,29 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
       top: selectedCard.offsetTop - container.offsetTop,
       behavior: "smooth",
     });
+  }, [selectedDate]);
+
+  useEffect(() => {
+    let active = true;
+
+    listAttachments(selectedDate)
+      .then((items) => {
+        if (!active) return;
+        setAttachments(items);
+      })
+      .catch(() => {
+        if (!active) return;
+        setAttachments([]);
+        setAttachmentsError("לא הצלחנו לטעון את הקבצים של היום הזה.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setAttachmentsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [selectedDate]);
 
   function submitPrompt(prompt: string) {
@@ -100,6 +139,43 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
         ]);
       }
     });
+  }
+
+  async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    try {
+      await saveAttachments(selectedDate, files);
+      const items = await listAttachments(selectedDate);
+      setAttachments(items);
+      setAttachmentsError("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch {
+      setAttachmentsError("שמירת הקבצים נכשלה. נסה שוב.");
+    }
+  }
+
+  async function handleDeleteAttachment(id: string) {
+    try {
+      await deleteAttachment(id);
+      const items = await listAttachments(selectedDate);
+      setAttachments(items);
+    } catch {
+      setAttachmentsError("מחיקת הקובץ נכשלה.");
+    }
+  }
+
+  function handleOpenAttachment(attachment: DayAttachment) {
+    const url = URL.createObjectURL(attachment.file);
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  function formatAttachmentSize(size: number) {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   return (
@@ -168,7 +244,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
                   type="button"
                   data-date={day.date}
                   className={`day-card ${day.date === selectedDate ? "active" : ""}`}
-                  onClick={() => setSelectedDate(day.date)}
+                  onClick={() => selectDay(day.date)}
                 >
                   <div className="day-date">
                     <div className="num">{day.dayNum}</div>
@@ -261,6 +337,51 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
         </section>
 
         <div>
+          <aside className="attachments-card">
+            <div className="card-head">
+              <div>
+                <h3>מסמכים וקבצים</h3>
+                <p>אפשר לשמור כאן כרטיסי טיסה, אישורי הזמנה, כרטיסים לפארקים, קבצי PDF ותמונות של היום הזה.</p>
+              </div>
+              <span className="badge">{attachments.length} קבצים</span>
+            </div>
+            <div className="attachments-actions">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="attachments-input"
+                multiple
+                onChange={handleFileSelect}
+              />
+            </div>
+            {attachmentsError ? <div className="attachments-error">{attachmentsError}</div> : null}
+            <div className="attachments-list">
+              {attachmentsLoading ? <div className="attachments-empty">טוען קבצים...</div> : null}
+              {!attachmentsLoading && !attachments.length ? (
+                <div className="attachments-empty">עדיין אין קבצים ליום הזה.</div>
+              ) : null}
+              {!attachmentsLoading && attachments.map((attachment) => (
+                <div key={attachment.id} className="attachment-item">
+                  <button type="button" className="attachment-main" onClick={() => handleOpenAttachment(attachment)}>
+                    <strong>{attachment.name}</strong>
+                    <span>{attachment.type || "קובץ"}</span>
+                    <span>{formatAttachmentSize(attachment.size)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="attachment-delete"
+                    onClick={() => handleDeleteAttachment(attachment.id)}
+                    aria-label={`מחק ${attachment.name}`}
+                  >
+                    מחק
+                  </button>
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          <div className="gap-block" />
+
           <aside className="logistics-card">
             <div className="card-head">
               <div>
