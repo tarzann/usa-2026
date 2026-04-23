@@ -50,7 +50,7 @@ export function RealTripMap({ apiKey, days, selectedDate, focusedLocation }: Rea
           className="real-map"
         >
           <MapViewport days={days} selectedDate={selectedDate} focusedLocation={focusedLocation} />
-          <DrivingRoute days={days} />
+          {!focusedLocation?.route ? <DrivingRoute days={days} /> : null}
           <FocusedRoute focusedLocation={focusedLocation} />
           {days.map((day) => {
             const isSelected = day.date === selectedDate;
@@ -156,14 +156,17 @@ function FocusedRoute({ focusedLocation }: { focusedLocation: FocusedMapLocation
     if (!map || !window.google?.maps || !focusedLocation?.route) return;
 
     const { origin, destination, mode } = focusedLocation.route;
+    const emphasizedLine = new window.google.maps.Polyline({
+      path: [origin, destination],
+      geodesic: true,
+      strokeColor: "#d56f3e",
+      strokeOpacity: 0.92,
+      strokeWeight: 6,
+      map,
+    });
 
     if (mode === "FLYING") {
-      const line = new window.google.maps.Polyline({
-        path: [origin, destination],
-        geodesic: true,
-        strokeColor: "#d56f3e",
-        strokeOpacity: 0.88,
-        strokeWeight: 5,
+      emphasizedLine.setOptions({
         icons: [
           {
             icon: {
@@ -175,11 +178,10 @@ function FocusedRoute({ focusedLocation }: { focusedLocation: FocusedMapLocation
             repeat: "18px",
           },
         ],
-        map,
       });
 
       return () => {
-        line.setMap(null);
+        emphasizedLine.setMap(null);
       };
     }
 
@@ -190,8 +192,8 @@ function FocusedRoute({ focusedLocation }: { focusedLocation: FocusedMapLocation
       preserveViewport: true,
       polylineOptions: {
         strokeColor: "#d56f3e",
-        strokeOpacity: 0.9,
-        strokeWeight: 5,
+        strokeOpacity: 0.92,
+        strokeWeight: 6,
       },
     });
 
@@ -201,21 +203,19 @@ function FocusedRoute({ focusedLocation }: { focusedLocation: FocusedMapLocation
         destination,
         travelMode: mode === "TRANSIT" ? window.google.maps.TravelMode.TRANSIT : window.google.maps.TravelMode.DRIVING,
       })
-      .then((result) => renderer.setDirections(result))
+      .then((result) => {
+        renderer.setDirections(result);
+        emphasizedLine.setMap(null);
+      })
       .catch(() => {
-        const fallback = new window.google.maps.Polyline({
-          path: [origin, destination],
-          geodesic: true,
-          strokeColor: "#d56f3e",
-          strokeOpacity: 0.72,
-          strokeWeight: 4,
-          map,
-        });
         renderer.setMap(null);
-        cleanup = () => fallback.setMap(null);
+        cleanup = () => emphasizedLine.setMap(null);
       });
 
-    let cleanup = () => renderer.setMap(null);
+    let cleanup = () => {
+      renderer.setMap(null);
+      emphasizedLine.setMap(null);
+    };
 
     return () => {
       cleanup();
