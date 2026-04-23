@@ -352,12 +352,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
                 key={`${selectedDay.date}-${flight.label}`}
                 type="button"
                 className="event-card event-card-button"
-                onClick={() => setFocusedLocation({
-                  title: flight.label,
-                  subtitle: flight.details.replace(/\s*\|\s*/g, " · "),
-                  lat: selectedDay.location.lat,
-                  lng: selectedDay.location.lng,
-                })}
+                onClick={() => setFocusedLocation(resolveEventLocation(flight.label, flight.details, selectedDay))}
               >
                 <div className="event-title"><span>✈️ {flight.label}</span><span>{selectedDay.travelMode}</span></div>
                 <div className="event-body">{flight.details.replace(/\s*\|\s*/g, " · ")}</div>
@@ -614,6 +609,7 @@ function resolveEventLocation(label: string, details: string, fallbackDay: TripD
       subtitle: match.subtitle,
       lat: match.lat,
       lng: match.lng,
+      route: match.route,
     };
   }
 
