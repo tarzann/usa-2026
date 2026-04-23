@@ -41,7 +41,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const timelineListRef = useRef<HTMLDivElement | null>(null);
   const [selectedDate, setSelectedDate] = useState(days[0]?.date ?? "");
   const [chatInput, setChatInput] = useState("");
-  const [isChatOpen, setIsChatOpen] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<Message[]>([
     {
       role: "assistant",
