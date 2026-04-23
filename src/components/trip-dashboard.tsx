@@ -548,6 +548,42 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
 function resolveEventLocation(label: string, details: string, fallbackDay: TripDay): FocusedMapLocation {
   const text = `${label} ${details}`.toLowerCase();
   const candidates: Array<FocusedMapLocation & { keywords: string[] }> = [
+    {
+      title: "NY → DC ברכבת",
+      subtitle: "Penn Station → Union Station",
+      lat: 39.8502,
+      lng: -75.4802,
+      keywords: ["ny → dc", "penn station", "union station", "amtrak"],
+      route: {
+        origin: { lat: 40.7506, lng: -73.9935, label: "Penn Station, New York" },
+        destination: { lat: 38.8977, lng: -77.0065, label: "Union Station, Washington DC" },
+        mode: "TRANSIT",
+      },
+    },
+    {
+      title: "טיסה תל אביב → ניו יורק",
+      subtitle: "TLV → JFK",
+      lat: 46.5,
+      lng: -29.0,
+      keywords: ["tlv", "zrh", "jfk", "הלוך"],
+      route: {
+        origin: { lat: 32.0055, lng: 34.8854, label: "Ben Gurion Airport" },
+        destination: { lat: 40.6413, lng: -73.7781, label: "JFK Airport" },
+        mode: "FLYING",
+      },
+    },
+    {
+      title: "טיסה מיאמי → תל אביב",
+      subtitle: "MIA → TLV",
+      lat: 43.0,
+      lng: -25.0,
+      keywords: ["mia", "fra", "חזרה"],
+      route: {
+        origin: { lat: 25.7959, lng: -80.287, label: "Miami International Airport" },
+        destination: { lat: 32.0055, lng: 34.8854, label: "Ben Gurion Airport" },
+        mode: "FLYING",
+      },
+    },
     { title: "JFK Airport", subtitle: "New York", lat: 40.6413, lng: -73.7781, keywords: ["jfk"] },
     { title: "Times Square", subtitle: "New York", lat: 40.758, lng: -73.9855, keywords: ["times square"] },
     { title: "Brooklyn Bridge", subtitle: "New York", lat: 40.7061, lng: -73.9969, keywords: ["brooklyn bridge", "גשר ברוקלין"] },

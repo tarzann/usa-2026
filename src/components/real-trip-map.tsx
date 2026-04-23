@@ -24,6 +24,11 @@ export type FocusedMapLocation = {
   subtitle: string;
   lat: number;
   lng: number;
+  route?: {
+    origin: { lat: number; lng: number; label: string };
+    destination: { lat: number; lng: number; label: string };
+    mode: "DRIVING" | "TRANSIT" | "FLYING";
+  };
 };
 
 export function RealTripMap({ apiKey, days, selectedDate, focusedLocation }: RealTripMapProps) {
@@ -46,6 +51,7 @@ export function RealTripMap({ apiKey, days, selectedDate, focusedLocation }: Rea
         >
           <MapViewport days={days} selectedDate={selectedDate} focusedLocation={focusedLocation} />
           <DrivingRoute days={days} />
+          <FocusedRoute focusedLocation={focusedLocation} />
           {days.map((day) => {
             const isSelected = day.date === selectedDate;
 
@@ -80,6 +86,20 @@ export function RealTripMap({ apiKey, days, selectedDate, focusedLocation }: Rea
               </div>
             </AdvancedMarker>
           ) : null}
+          {focusedLocation?.route ? (
+            <>
+              <AdvancedMarker position={focusedLocation.route.origin} title={focusedLocation.route.origin.label}>
+                <Pin background="#2f2619" borderColor="#2f2619" glyphColor="#ffffff" scale={0.9}>
+                  א
+                </Pin>
+              </AdvancedMarker>
+              <AdvancedMarker position={focusedLocation.route.destination} title={focusedLocation.route.destination.label}>
+                <Pin background="#0c7c74" borderColor="#095f59" glyphColor="#ffffff" scale={0.9}>
+                  ב
+                </Pin>
+              </AdvancedMarker>
+            </>
+          ) : null}
         </Map>
       </APIProvider>
     </div>
@@ -101,6 +121,14 @@ function MapViewport({
     if (!map || !days.length || !window.google?.maps) return;
 
     if (focusedLocation) {
+      if (focusedLocation.route) {
+        const bounds = new window.google.maps.LatLngBounds();
+        bounds.extend(focusedLocation.route.origin);
+        bounds.extend(focusedLocation.route.destination);
+        map.fitBounds(bounds, 96);
+        return;
+      }
+
       map.panTo({ lat: focusedLocation.lat, lng: focusedLocation.lng });
       if ((map.getZoom() ?? 0) < 13) {
         map.setZoom(13);
@@ -117,6 +145,82 @@ function MapViewport({
       map.panTo({ lat: selectedDay.location.lat, lng: selectedDay.location.lng });
     }
   }, [map, days, selectedDate, focusedLocation]);
+
+  return null;
+}
+
+function FocusedRoute({ focusedLocation }: { focusedLocation: FocusedMapLocation | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || !window.google?.maps || !focusedLocation?.route) return;
+
+    const { origin, destination, mode } = focusedLocation.route;
+
+    if (mode === "FLYING") {
+      const line = new window.google.maps.Polyline({
+        path: [origin, destination],
+        geodesic: true,
+        strokeColor: "#d56f3e",
+        strokeOpacity: 0.88,
+        strokeWeight: 5,
+        icons: [
+          {
+            icon: {
+              path: "M 0,-1 0,1",
+              strokeOpacity: 1,
+              scale: 3,
+            },
+            offset: "0",
+            repeat: "18px",
+          },
+        ],
+        map,
+      });
+
+      return () => {
+        line.setMap(null);
+      };
+    }
+
+    const service = new window.google.maps.DirectionsService();
+    const renderer = new window.google.maps.DirectionsRenderer({
+      map,
+      suppressMarkers: true,
+      preserveViewport: true,
+      polylineOptions: {
+        strokeColor: "#d56f3e",
+        strokeOpacity: 0.9,
+        strokeWeight: 5,
+      },
+    });
+
+    service
+      .route({
+        origin,
+        destination,
+        travelMode: mode === "TRANSIT" ? window.google.maps.TravelMode.TRANSIT : window.google.maps.TravelMode.DRIVING,
+      })
+      .then((result) => renderer.setDirections(result))
+      .catch(() => {
+        const fallback = new window.google.maps.Polyline({
+          path: [origin, destination],
+          geodesic: true,
+          strokeColor: "#d56f3e",
+          strokeOpacity: 0.72,
+          strokeWeight: 4,
+          map,
+        });
+        renderer.setMap(null);
+        cleanup = () => fallback.setMap(null);
+      });
+
+    let cleanup = () => renderer.setMap(null);
+
+    return () => {
+      cleanup();
+    };
+  }, [map, focusedLocation]);
 
   return null;
 }
