@@ -26,6 +26,7 @@ export type FocusedMapLocation = {
   lng: number;
   route?: {
     origin: { lat: number; lng: number; label: string };
+    stops?: Array<{ lat: number; lng: number; label: string }>;
     destination: { lat: number; lng: number; label: string };
     mode: "DRIVING" | "TRANSIT" | "FLYING";
   };
@@ -93,6 +94,13 @@ export function RealTripMap({ apiKey, days, selectedDate, focusedLocation }: Rea
                   א
                 </Pin>
               </AdvancedMarker>
+              {focusedLocation.route.stops?.map((stop, index) => (
+                <AdvancedMarker key={`${stop.label}-${index}`} position={stop} title={stop.label}>
+                  <Pin background="#d56f3e" borderColor="#b8562a" glyphColor="#ffffff" scale={0.86}>
+                    {String(index + 1)}
+                  </Pin>
+                </AdvancedMarker>
+              ))}
               <AdvancedMarker position={focusedLocation.route.destination} title={focusedLocation.route.destination.label}>
                 <Pin background="#0c7c74" borderColor="#095f59" glyphColor="#ffffff" scale={0.9}>
                   ב
@@ -123,8 +131,7 @@ function MapViewport({
     if (focusedLocation) {
       if (focusedLocation.route) {
         const bounds = new window.google.maps.LatLngBounds();
-        bounds.extend(focusedLocation.route.origin);
-        bounds.extend(focusedLocation.route.destination);
+        getRoutePath(focusedLocation.route).forEach((point) => bounds.extend(point));
         map.fitBounds(bounds, 96);
         return;
       }
@@ -156,8 +163,9 @@ function FocusedRoute({ focusedLocation }: { focusedLocation: FocusedMapLocation
     if (!map || !window.google?.maps || !focusedLocation?.route) return;
 
     const { origin, destination, mode } = focusedLocation.route;
+    const routePath = getRoutePath(focusedLocation.route);
     const emphasizedLine = new window.google.maps.Polyline({
-      path: [origin, destination],
+      path: routePath,
       geodesic: true,
       strokeColor: "#d56f3e",
       strokeOpacity: 0.92,
@@ -201,6 +209,7 @@ function FocusedRoute({ focusedLocation }: { focusedLocation: FocusedMapLocation
       .route({
         origin,
         destination,
+        waypoints: focusedLocation.route.stops?.map((stop) => ({ location: stop, stopover: true })),
         travelMode: mode === "TRANSIT" ? window.google.maps.TravelMode.TRANSIT : window.google.maps.TravelMode.DRIVING,
       })
       .then((result) => {
@@ -223,6 +232,10 @@ function FocusedRoute({ focusedLocation }: { focusedLocation: FocusedMapLocation
   }, [map, focusedLocation]);
 
   return null;
+}
+
+function getRoutePath(route: NonNullable<FocusedMapLocation["route"]>) {
+  return [route.origin, ...(route.stops ?? []), route.destination];
 }
 
 function DrivingRoute({ days }: { days: TripDay[] }) {

@@ -686,24 +686,26 @@ function resolveEventLocation(label: string, details: string, fallbackDay: TripD
     },
     {
       title: "טיסה תל אביב → ניו יורק",
-      subtitle: "TLV → JFK",
+      subtitle: "TLV → ZRH → JFK",
       lat: 46.5,
       lng: -29.0,
       keywords: ["tlv", "zrh", "jfk", "הלוך"],
       route: {
         origin: { lat: 32.0055, lng: 34.8854, label: "Ben Gurion Airport" },
+        stops: [{ lat: 47.4581, lng: 8.5555, label: "Zurich Airport" }],
         destination: { lat: 40.6413, lng: -73.7781, label: "JFK Airport" },
         mode: "FLYING",
       },
     },
     {
       title: "טיסה מיאמי → תל אביב",
-      subtitle: "MIA → TLV",
+      subtitle: "MIA → FRA → TLV",
       lat: 43.0,
       lng: -25.0,
       keywords: ["mia", "fra", "חזרה"],
       route: {
         origin: { lat: 25.7959, lng: -80.287, label: "Miami International Airport" },
+        stops: [{ lat: 50.0379, lng: 8.5622, label: "Frankfurt Airport" }],
         destination: { lat: 32.0055, lng: 34.8854, label: "Ben Gurion Airport" },
         mode: "FLYING",
       },
