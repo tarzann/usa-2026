@@ -100,12 +100,13 @@ a {
 }
 
 .workspace {
-  grid-template-columns: minmax(330px, 0.95fr) minmax(360px, 1.05fr);
+  grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
   align-items: stretch;
 }
 
 .detail-grid {
-  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(320px, 420px);
+  justify-content: end;
 }
 
 .eyebrow,
@@ -291,6 +292,10 @@ a {
 .timeline-card,
 .map-card {
   height: 600px;
+}
+
+.map-card-wide {
+  height: auto;
 }
 
 .timeline-card {

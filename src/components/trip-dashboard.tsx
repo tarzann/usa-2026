@@ -447,40 +447,6 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
           </div>
         </section>
 
-        <div className="right-column">
-          <section className="map-card">
-            <div className="card-head">
-              <div>
-                <h3>מפת הסיפור של הטיול</h3>
-                <p>המפה עכשיו חיה ואינטראקטיבית, עם markers אמיתיים ונתיב שמחבר בין ימי המסלול.</p>
-              </div>
-              <span className="badge">{selectedDay.location.region}</span>
-            </div>
-              <RealTripMap
-                apiKey={googleMapsApiKey}
-                days={days}
-                selectedDate={activeSelectedDate}
-                focusedLocation={focusedLocation}
-              />
-            <div className="map-note">
-              <div className="mini-stat">
-                <div className="mini-stat-label">היום הנבחר</div>
-                <div className="mini-stat-value">{selectedDay.location.name}</div>
-              </div>
-              <div className="mini-stat">
-                <div className="mini-stat-label">מחר במסלול</div>
-                <div className="mini-stat-value">{nextDay ? nextDay.location.name : "סיום הטיול"}</div>
-              </div>
-              <div className="mini-stat">
-                <div className="mini-stat-label">פריטים נעולים</div>
-                <div className="mini-stat-value">{countLockedItems(currentTripData)}</div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <section className="detail-grid">
         <section className="detail-card">
           <div className="detail-header">
             <div>
@@ -629,6 +595,39 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
             ))}
           </div>
         </section>
+      </section>
+
+      <section className="map-card map-card-wide">
+        <div className="card-head">
+          <div>
+            <h3>מפת הסיפור של הטיול</h3>
+            <p>המפה עכשיו חיה ואינטראקטיבית, עם markers אמיתיים ונתיב שמחבר בין ימי המסלול.</p>
+          </div>
+          <span className="badge">{selectedDay.location.region}</span>
+        </div>
+        <RealTripMap
+          apiKey={googleMapsApiKey}
+          days={days}
+          selectedDate={activeSelectedDate}
+          focusedLocation={focusedLocation}
+        />
+        <div className="map-note">
+          <div className="mini-stat">
+            <div className="mini-stat-label">היום הנבחר</div>
+            <div className="mini-stat-value">{selectedDay.location.name}</div>
+          </div>
+          <div className="mini-stat">
+            <div className="mini-stat-label">מחר במסלול</div>
+            <div className="mini-stat-value">{nextDay ? nextDay.location.name : "סיום הטיול"}</div>
+          </div>
+          <div className="mini-stat">
+            <div className="mini-stat-label">פריטים נעולים</div>
+            <div className="mini-stat-value">{countLockedItems(currentTripData)}</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="detail-grid">
 
         <div>
           <aside className="logistics-card">
