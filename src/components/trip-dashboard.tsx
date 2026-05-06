@@ -601,7 +601,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
                     <div className="dow">{day.dayName.replace("יום ", "")}</div>
                   </div>
                   <div className="day-summary">
-                    <span className="segment-pill">📍 {displayLocation.name}</span>
+                    <span className="segment-pill" style={getLocationTagStyle(displayLocation.name)}>📍 {displayLocation.name}</span>
                     <div className="day-title">{displayTitle}</div>
                     <div className="day-meta">{displayLocation.name} · {day.travelMode}</div>
                     <div className="day-preview">{preview}</div>
@@ -625,7 +625,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
               <div className="detail-location-note">📍 מיקום היום: {selectedDayLocation.name}{selectedDayLocation.region ? ` · ${selectedDayLocation.region}` : ""}</div>
             </div>
             <div className="detail-actions">
-              <span className="chip">📍 {selectedDayLocation.name}</span>
+              <span className="chip" style={getLocationTagStyle(selectedDayLocation.name)}>📍 {selectedDayLocation.name}</span>
               <span className="chip">{selectedDayLocation.region}</span>
               <span className="chip">{selectedDay.travelMode}</span>
             </div>
@@ -1317,6 +1317,28 @@ function resolveDayDisplayTitle(day: TripDay, tripData: TripData) {
 
 function hasDayLocationOverride(date: string, tripData: TripData) {
   return Boolean(tripData.dayOverrides?.[date]?.location?.name?.trim());
+}
+
+function getLocationTagStyle(locationName: string) {
+  const palettes = [
+    { background: "#e7f7f4", color: "#0f766e" },
+    { background: "#eef4ff", color: "#365fc7" },
+    { background: "#fff2e8", color: "#b45309" },
+    { background: "#f5efff", color: "#6d28d9" },
+    { background: "#ecfdf3", color: "#15803d" },
+    { background: "#fff1f2", color: "#be123c" },
+    { background: "#eefbff", color: "#0369a1" },
+    { background: "#fff7ed", color: "#c2410c" },
+  ];
+
+  const hash = [...locationName].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const palette = palettes[hash % palettes.length];
+
+  return {
+    background: palette.background,
+    color: palette.color,
+    borderColor: `${palette.color}22`,
+  };
 }
 
 function buildFlightForm(flight: Flight | undefined): DayFlightForm {
