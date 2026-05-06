@@ -735,6 +735,31 @@ a {
   gap: 12px;
 }
 
+.day-management-toggle {
+  width: 100%;
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+  color: inherit;
+  text-align: right;
+}
+
+.day-management-toggle-copy {
+  color: var(--brand-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.day-management-title {
+  margin-bottom: 0;
+}
+
 .day-admin-card {
   display: grid;
   gap: 12px;

@@ -159,6 +159,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const [flightForm, setFlightForm] = useState<DayFlightForm>(() => buildFlightForm(initialResolvedDays[0]?.flights[0]));
   const [hotelForm, setHotelForm] = useState<DayHotelForm>(() => buildHotelForm(initialResolvedDays[0]?.hotels[0], initialResolvedDays[0]?.date ?? initialDays[0]?.date ?? ""));
   const [planForm, setPlanForm] = useState(() => currentTripData.dayOverrides?.[initialResolvedDays[0]?.date ?? ""]?.summary || "");
+  const [isDayManagementOpen, setIsDayManagementOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const days = buildTripDays(currentTripData);
   const activeSelectedDate = days.some((day) => day.date === selectedDate) ? selectedDate : (days[0]?.date ?? "");
@@ -649,7 +650,18 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
             })}
           </div>
 
-          <div className="section-title" style={{ marginTop: "18px" }}>ניהול יום</div>
+          <button
+            type="button"
+            className="day-management-toggle"
+            onClick={() => setIsDayManagementOpen((current) => !current)}
+            aria-expanded={isDayManagementOpen}
+          >
+            <span className="section-title day-management-title">ניהול יום</span>
+            <span className="day-management-toggle-copy">
+              {isDayManagementOpen ? "סגור עריכה" : "פתח אפשרויות עריכה"}
+            </span>
+          </button>
+          {isDayManagementOpen ? (
           <div className="day-management-grid">
             <section className="day-admin-card">
               <div className="day-admin-head">
@@ -732,6 +744,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
               <textarea className="day-admin-textarea day-admin-plan" value={planForm} onChange={(event) => setPlanForm(event.target.value)} placeholder="כתוב כאן את התכנון הכללי של היום, דגשים, קצב, חלונות זמן והערות." />
             </section>
           </div>
+          ) : null}
 
           <div className="section-title" style={{ marginTop: "18px" }}>מסמכים וקבצים</div>
           <div className="attachments-actions">
