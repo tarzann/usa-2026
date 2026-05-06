@@ -92,6 +92,36 @@ export function inferTripUpdates(prompt: string, selectedDay: TripDay, currentTr
     }];
   }
 
+  if ((normalized.includes("הוסף") || normalized.includes("תוסיף") || normalized.includes("add")) && normalized.includes("יום")) {
+    if (normalized.includes("מחר")) {
+      const days = buildTripDays(currentTripData);
+      const currentDayIndex = days.find((day) => day.date === selectedDay.date)?.index;
+      const nextExistingDay = typeof currentDayIndex === "number" ? days[currentDayIndex + 1] : null;
+      const targetDate = nextExistingDay ? shiftDate(nextExistingDay.date, -1) : shiftDate(selectedDay.date, 1);
+      return [{ type: "add_day", date: targetDate }];
+    }
+
+    if (normalized.includes("אחרי")) {
+      return [{ type: "add_day", date: shiftDate(selectedDay.date, 1) }];
+    }
+
+    if (normalized.includes("לפני")) {
+      return [{ type: "add_day", date: shiftDate(selectedDay.date, -1) }];
+    }
+
+    const explicitDate = text.match(/\b20\d{2}-\d{2}-\d{2}\b/)?.[0];
+    return explicitDate ? [{ type: "add_day", date: explicitDate }] : [{ type: "add_day", date: shiftDate(selectedDay.date, 1) }];
+  }
+
+  if ((normalized.includes("מחק") || normalized.includes("הסר") || normalized.includes("delete") || normalized.includes("remove")) && normalized.includes("יום")) {
+    if (normalized.includes("היום הזה") || normalized.includes("day") || normalized.includes("selected")) {
+      return [{ type: "remove_day", date: selectedDay.date }];
+    }
+
+    const explicitDate = text.match(/\b20\d{2}-\d{2}-\d{2}\b/)?.[0];
+    return explicitDate ? [{ type: "remove_day", date: explicitDate }] : [{ type: "remove_day", date: selectedDay.date }];
+  }
+
   return [];
 }
 
@@ -120,6 +150,10 @@ export function buildImmediateUpdateReply(updates: TripUpdateAction[]) {
         return `עדכנתי את פרטי הטיסה "${update.label}" ליום ${formatDate(update.date)}.`;
       case "update_hotel":
         return `עדכנתי את פרטי הלינה "${update.name}".`;
+      case "add_day":
+        return `הוספתי יום למסלול בתאריך ${formatDate(update.date)}.`;
+      case "remove_day":
+        return `הסרתי את יום ${formatDate(update.date)} מהתצוגה של הטיול.`;
       default:
         return "בוצע עדכון במסלול.";
     }
@@ -146,4 +180,15 @@ function findMatchingFlightLabel(prompt: string, flights: string[]) {
 function findMatchingHotelName(prompt: string, hotels: string[]) {
   const normalizedPrompt = prompt.toLowerCase();
   return hotels.find((hotel) => normalizedPrompt.includes(hotel.toLowerCase()));
+}
+
+function shiftDate(dateStr: string, daysToAdd: number) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const current = new Date(year, month - 1, day);
+  current.setDate(current.getDate() + daysToAdd);
+  return [
+    current.getFullYear(),
+    String(current.getMonth() + 1).padStart(2, "0"),
+    String(current.getDate()).padStart(2, "0"),
+  ].join("-");
 }

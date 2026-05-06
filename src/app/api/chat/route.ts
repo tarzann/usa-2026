@@ -67,7 +67,7 @@ export async function POST(request: Request) {
                   type: "object",
                   additionalProperties: false,
                   properties: {
-                    type: { type: "string", enum: ["add_todo", "complete_todo", "reopen_todo", "add_event", "update_day_title", "update_day_summary", "update_event", "delete_event", "move_event", "update_flight", "update_hotel"] },
+                    type: { type: "string", enum: ["add_todo", "complete_todo", "reopen_todo", "add_event", "update_day_title", "update_day_summary", "update_event", "delete_event", "move_event", "update_flight", "update_hotel", "add_day", "remove_day"] },
                     text: { type: ["string", "null"] },
                     date: { type: ["string", "null"] },
                     label: { type: ["string", "null"] },
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
         "Do not end every reply with a follow-up question. Ask a question only if you are genuinely blocked.",
         "Short confirmations like כן, אוקיי, תמשיך, or similar should be interpreted using the recent conversation context.",
         "When the user explicitly asks to change the trip, return matching updates in the updates array.",
-        "Supported updates are: add_todo, complete_todo, reopen_todo, add_event, update_day_title, update_day_summary, update_event, delete_event, move_event, update_flight, update_hotel.",
+        "Supported updates are: add_todo, complete_todo, reopen_todo, add_event, update_day_title, update_day_summary, update_event, delete_event, move_event, update_flight, update_hotel, add_day, remove_day.",
         "Only emit updates when the user clearly asked to modify data. Otherwise return an empty updates array.",
         "For add_event, default to the currently selected day unless the user clearly provided another date.",
         "For update_event and delete_event, use the exact current event label when possible.",
@@ -262,6 +262,10 @@ function parseAgentResponse(raw: string): { reply: string; updates: TripUpdateAc
                 location: item.location?.trim() || undefined,
               }]
             : [];
+        case "add_day":
+          return item.date?.trim() ? [{ type: "add_day", date: item.date.trim() }] : [];
+        case "remove_day":
+          return item.date?.trim() ? [{ type: "remove_day", date: item.date.trim() }] : [];
         default:
           return [];
       }

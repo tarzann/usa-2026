@@ -57,6 +57,7 @@ export type TripData = {
   hotels: Hotel[];
   todos: Todo[];
   dayOverrides?: Record<string, DayOverride>;
+  skippedDates?: string[];
 };
 
 export type TripUpdateAction =
@@ -70,7 +71,9 @@ export type TripUpdateAction =
   | { type: "delete_event"; date: string; label: string }
   | { type: "move_event"; fromDate: string; toDate: string; label: string }
   | { type: "update_flight"; date: string; label: string; nextLabel?: string; details?: string; booking?: string }
-  | { type: "update_hotel"; name: string; nextName?: string; address?: string; phone?: string; confirmation?: string; location?: string };
+  | { type: "update_hotel"; name: string; nextName?: string; address?: string; phone?: string; confirmation?: string; location?: string }
+  | { type: "add_day"; date: string }
+  | { type: "remove_day"; date: string };
 
 export type TripLocation = {
   name: string;
@@ -122,6 +125,7 @@ export function sanitizeTripData(data: TripData): TripData {
     events: data.events.filter((event) => isDateInTrip(event.date, data)),
     segments: data.segments.filter((segment) => segment.endDate >= data.startDate && segment.startDate <= data.endDate),
     dayOverrides: data.dayOverrides ?? {},
+    skippedDates: (data.skippedDates ?? []).filter((date) => isDateInTrip(date, data)),
   };
 }
 
@@ -134,9 +138,12 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
     hotels: [...data.hotels],
     todos: data.todos.map((todo) => ({ ...todo })),
     dayOverrides: { ...(data.dayOverrides ?? {}) },
+    skippedDates: [...(data.skippedDates ?? [])],
   };
   const dayOverrides = nextData.dayOverrides ?? {};
   nextData.dayOverrides = dayOverrides;
+  const skippedDates = new Set(nextData.skippedDates ?? []);
+  nextData.skippedDates = [...skippedDates];
 
   for (const update of updates) {
     switch (update.type) {
@@ -237,6 +244,19 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
         if (update.phone?.trim()) match.phone = update.phone.trim();
         if (update.confirmation?.trim()) match.confirmation = update.confirmation.trim();
         if (update.location?.trim()) match.location = update.location.trim();
+        break;
+      }
+      case "add_day": {
+        if (update.date < nextData.startDate) nextData.startDate = update.date;
+        if (update.date > nextData.endDate) nextData.endDate = update.date;
+        skippedDates.delete(update.date);
+        nextData.skippedDates = [...skippedDates].sort();
+        break;
+      }
+      case "remove_day": {
+        if (update.date < nextData.startDate || update.date > nextData.endDate) break;
+        skippedDates.add(update.date);
+        nextData.skippedDates = [...skippedDates].sort();
         break;
       }
     }
@@ -350,7 +370,8 @@ function getDayLocation(title: string, summary: string, segment: Segment | null)
 }
 
 export function buildTripDays(data: TripData = tripData) {
-  return dateRange(data.startDate, data.endDate).map((dateStr, index): TripDay => {
+  const skippedDates = new Set(data.skippedDates ?? []);
+  return dateRange(data.startDate, data.endDate).filter((dateStr) => !skippedDates.has(dateStr)).map((dateStr, index): TripDay => {
     const flights = getFlightsForDate(dateStr, data);
     const events = getEventsForDate(dateStr, data);
     const hotels = getHotelsForDate(dateStr, data);
