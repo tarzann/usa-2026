@@ -136,6 +136,7 @@ const LOCAL_STORAGE_KEY = "trip-planner-data-v1";
 export function TripDashboard({ days: initialDays, initialTripData, googleMapsApiKey }: TripDashboardProps) {
   const timelineListRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const detailCardRef = useRef<HTMLElement | null>(null);
   const [currentTripData, setCurrentTripData] = useState<TripData>(() => {
     if (typeof window === "undefined") return initialTripData;
 
@@ -171,6 +172,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const [planForm, setPlanForm] = useState("");
   const [isDayManagementOpen, setIsDayManagementOpen] = useState(false);
   const [activeDayManagementTab, setActiveDayManagementTab] = useState<DayManagementTab>("general");
+  const [timelineHeight, setTimelineHeight] = useState(600);
   const [isPending, startTransition] = useTransition();
   const days = buildTripDays(currentTripData).map((day) => applyDayPresentationOverrides(day, currentTripData));
   const activeSelectedDate = days.some((day) => day.date === selectedDate) ? selectedDate : (days[0]?.date ?? "");
@@ -184,6 +186,22 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   useEffect(() => {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentTripData));
   }, [currentTripData]);
+
+  useEffect(() => {
+    const card = detailCardRef.current;
+    if (!card) return;
+
+    const updateHeight = () => {
+      setTimelineHeight(Math.max(600, Math.ceil(card.getBoundingClientRect().height)));
+    };
+
+    updateHeight();
+
+    const observer = new ResizeObserver(() => updateHeight());
+    observer.observe(card);
+
+    return () => observer.disconnect();
+  }, [activeSelectedDate, currentTripData, attachments.length, isDayManagementOpen, activeDayManagementTab]);
 
   function selectDay(date: string) {
     setAttachmentsLoading(true);
@@ -547,7 +565,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
       </section>
 
       <section className="workspace">
-        <section className="timeline-card">
+        <section className="timeline-card" style={{ height: `${timelineHeight}px` }}>
           <div className="card-head">
             <div>
               <h3>ציר ימי הטיול</h3>
@@ -592,7 +610,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
           </div>
         </section>
 
-        <section className="detail-card">
+        <section className="detail-card" ref={detailCardRef}>
           <div className="detail-header">
             <div>
               <div className="section-title">{selectedDay.dayName} · {formatDate(selectedDay.date)}</div>
