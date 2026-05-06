@@ -158,7 +158,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const [carForm, setCarForm] = useState<DayCarForm>(() => buildCarForm(initialResolvedDays[0]?.car ?? null));
   const [flightForm, setFlightForm] = useState<DayFlightForm>(() => buildFlightForm(initialResolvedDays[0]?.flights[0]));
   const [hotelForm, setHotelForm] = useState<DayHotelForm>(() => buildHotelForm(initialResolvedDays[0]?.hotels[0], initialResolvedDays[0]?.date ?? initialDays[0]?.date ?? ""));
-  const [planForm, setPlanForm] = useState(() => currentTripData.dayOverrides?.[initialResolvedDays[0]?.date ?? ""]?.summary || "");
+  const [planForm, setPlanForm] = useState(() => initialResolvedDays[0]?.summary || "");
   const [isDayManagementOpen, setIsDayManagementOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const days = buildTripDays(currentTripData);
@@ -296,7 +296,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
     setCarForm(buildCarForm(day.car));
     setFlightForm(buildFlightForm(day.flights[0]));
     setHotelForm(buildHotelForm(day.hotels[0], day.date));
-    setPlanForm(tripData.dayOverrides?.[day.date]?.summary || "");
+    setPlanForm(day.summary);
   }
 
   function saveLocation() {
@@ -306,8 +306,8 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
       date: activeSelectedDate,
       name: locationForm.name.trim(),
       region: locationForm.region.trim() || undefined,
-      lat: locationForm.lat.trim() ? Number(locationForm.lat) : undefined,
-      lng: locationForm.lng.trim() ? Number(locationForm.lng) : undefined,
+      lat: parseOptionalNumber(locationForm.lat),
+      lng: parseOptionalNumber(locationForm.lng),
     }]);
   }
 
@@ -395,6 +395,10 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
     const existingHotel = selectedDay.hotels[0];
     if (!existingHotel) return;
     applyDirectUpdates([{ type: "delete_hotel", name: existingHotel.name, checkIn: existingHotel.checkIn }]);
+  }
+
+  function removeEvent(label: string) {
+    applyDirectUpdates([{ type: "delete_event", date: activeSelectedDate, label }]);
   }
 
   function openFlightEditor() {
@@ -738,10 +742,36 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
                 <strong>תכנון כללי של היום</strong>
                 <div className="day-admin-actions">
                   <Button variant="glass" size="sm" type="button" onClick={saveGeneralPlan}>שמור</Button>
-                  <Button variant="ghost" size="sm" type="button" onClick={() => { setPlanForm(""); applyDirectUpdates([{ type: "clear_day_summary", date: activeSelectedDate }]); }}>הסר</Button>
+                  <Button variant="ghost" size="sm" type="button" onClick={() => applyDirectUpdates([{ type: "clear_day_summary", date: activeSelectedDate }])}>הסר</Button>
                 </div>
               </div>
               <textarea className="day-admin-textarea day-admin-plan" value={planForm} onChange={(event) => setPlanForm(event.target.value)} placeholder="כתוב כאן את התכנון הכללי של היום, דגשים, קצב, חלונות זמן והערות." />
+            </section>
+
+            <section className="day-admin-card day-admin-card-wide">
+              <div className="day-admin-head">
+                <strong>תוכניות קיימות</strong>
+                <span className="day-admin-meta">{selectedDay.events.length} פריטים</span>
+              </div>
+              <div className="existing-plan-list">
+                {selectedDay.events.length ? selectedDay.events.map((event) => (
+                  <div key={`${event.date}-${event.label}`} className="existing-plan-item">
+                    <button
+                      type="button"
+                      className="existing-plan-main"
+                      onClick={() => setFocusedLocation(resolveEventLocation(event.label, event.details, selectedDay))}
+                    >
+                      <strong>{event.label}</strong>
+                      <span>{formatPlanDetails(event.details)}</span>
+                    </button>
+                    <Button variant="ghost" size="sm" type="button" onClick={() => removeEvent(event.label)}>
+                      מחק
+                    </Button>
+                  </div>
+                )) : (
+                  <div className="attachments-empty">עדיין אין פעילויות שמורות ליום הזה.</div>
+                )}
+              </div>
             </section>
           </div>
           ) : null}
@@ -1213,6 +1243,13 @@ function shiftIsoDate(dateStr: string, delta: number) {
     String(next.getMonth() + 1).padStart(2, "0"),
     String(next.getDate()).padStart(2, "0"),
   ].join("-");
+}
+
+function parseOptionalNumber(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function resolveFlightEditorTarget(day: TripDay, flights: Flight[]) {

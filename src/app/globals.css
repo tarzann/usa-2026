@@ -786,6 +786,12 @@ a {
   flex-wrap: wrap;
 }
 
+.day-admin-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .day-admin-fields {
   display: grid;
   gap: 10px;
@@ -822,6 +828,36 @@ a {
   outline: none;
   border-color: rgba(42, 166, 161, 0.42);
   box-shadow: 0 0 0 4px rgba(42, 166, 161, 0.08);
+}
+
+.existing-plan-list {
+  display: grid;
+  gap: 10px;
+}
+
+.existing-plan-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+}
+
+.existing-plan-main {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+  color: inherit;
+  background: transparent;
+}
+
+.existing-plan-main span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
 }
 
 .attachments-input {
