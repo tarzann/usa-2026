@@ -4,6 +4,7 @@ export function inferTripUpdates(prompt: string, selectedDay: TripDay, currentTr
   const text = prompt.trim();
   const normalized = text.toLowerCase();
   const quoted = text.match(/["“](.+?)["”]/)?.[1]?.trim() || text.match(/'(.+?)'/)?.[1]?.trim();
+  const tripYear = Number(currentTripData.startDate.slice(0, 4)) || Number(selectedDay.date.slice(0, 4));
 
   if ((normalized.includes("הוסף") || normalized.includes("תוסיף") || normalized.includes("add")) && (normalized.includes("משימה") || normalized.includes("todo"))) {
     const todoText = quoted || text.split(":")[1]?.trim() || text.replace(/.*(?:משימה|todo)\s*/i, "").trim();
@@ -71,11 +72,18 @@ export function inferTripUpdates(prompt: string, selectedDay: TripDay, currentTr
       : [];
   }
 
-  if ((normalized.includes("עדכן") || normalized.includes("שנה")) && (normalized.includes("טיסה") || normalized.includes("flight"))) {
+  if ((normalized.includes("עדכן") || normalized.includes("שנה") || normalized.includes("העבר")) && (normalized.includes("טיסה") || normalized.includes("flight"))) {
     const flight = resolveFlightTarget(text, selectedDay, currentTripData, quoted);
     const details = extractUpdatePayload(text);
-    return flight && details
-      ? [{ type: "update_flight", date: flight.date, label: flight.label, details }]
+    const nextDate = extractTargetFlightDate(text, flight?.date, tripYear);
+    return flight && (details || nextDate)
+      ? [{
+          type: "update_flight",
+          date: flight.date,
+          label: flight.label,
+          nextDate: nextDate && nextDate !== flight.date ? nextDate : undefined,
+          details: details || undefined,
+        }]
       : [];
   }
 
@@ -146,7 +154,9 @@ export function buildImmediateUpdateReply(updates: TripUpdateAction[]) {
       case "move_event":
         return `העברתי את האירוע "${update.label}" מ-${formatDate(update.fromDate)} ל-${formatDate(update.toDate)}.`;
       case "update_flight":
-        return `עדכנתי את פרטי הטיסה "${update.label}" ליום ${formatDate(update.date)}.`;
+        return update.nextDate
+          ? `העברתי את הטיסה "${update.label}" מ-${formatDate(update.date)} ל-${formatDate(update.nextDate)}.`
+          : `עדכנתי את פרטי הטיסה "${update.label}" ליום ${formatDate(update.date)}.`;
       case "update_hotel":
         return `עדכנתי את פרטי הלינה "${update.name}".`;
       case "add_day":
@@ -241,4 +251,43 @@ function extractUpdatePayload(text: string) {
   if (dashText) return dashText;
 
   return "";
+}
+
+const HEBREW_MONTHS: Record<string, number> = {
+  ינואר: 1,
+  פברואר: 2,
+  מרץ: 3,
+  אפריל: 4,
+  מאי: 5,
+  יוני: 6,
+  יולי: 7,
+  אוגוסט: 8,
+  ספטמבר: 9,
+  אוקטובר: 10,
+  נובמבר: 11,
+  דצמבר: 12,
+};
+
+function extractTargetFlightDate(text: string, currentDate?: string, fallbackYear?: number) {
+  const isoMatches = [...text.matchAll(/\b(20\d{2}-\d{2}-\d{2})\b/g)].map((match) => match[1]);
+  if (isoMatches.length > 1) return isoMatches[isoMatches.length - 1];
+  if (isoMatches.length === 1) {
+    const [onlyDate] = isoMatches;
+    if (!currentDate || onlyDate !== currentDate) return onlyDate;
+  }
+
+  const dayMonthMatches = [...text.matchAll(/(\d{1,2})\s*ב?(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/g)];
+  if (!dayMonthMatches.length) return null;
+
+  const currentYear = Number(currentDate?.slice(0, 4)) || fallbackYear || new Date().getFullYear();
+  const normalizedDates = dayMonthMatches.map((match) => {
+    const day = Number(match[1]);
+    const month = HEBREW_MONTHS[match[2]];
+    return `${currentYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  });
+
+  if (normalizedDates.length > 1) return normalizedDates[normalizedDates.length - 1];
+
+  const [onlyDate] = normalizedDates;
+  return !currentDate || onlyDate !== currentDate ? onlyDate : null;
 }

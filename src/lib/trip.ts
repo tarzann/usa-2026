@@ -70,7 +70,7 @@ export type TripUpdateAction =
   | { type: "update_event"; date: string; label: string; nextLabel?: string; details?: string; emoji?: string; locked?: boolean }
   | { type: "delete_event"; date: string; label: string }
   | { type: "move_event"; fromDate: string; toDate: string; label: string }
-  | { type: "update_flight"; date: string; label: string; nextLabel?: string; details?: string; booking?: string }
+  | { type: "update_flight"; date: string; label: string; nextDate?: string; nextLabel?: string; details?: string; booking?: string }
   | { type: "update_hotel"; name: string; nextName?: string; address?: string; phone?: string; confirmation?: string; location?: string }
   | { type: "add_day"; date: string }
   | { type: "remove_day"; date: string };
@@ -229,6 +229,11 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
             flight.label.trim().toLowerCase() === update.label.trim().toLowerCase(),
         );
         if (!match) break;
+        if (update.nextDate?.trim()) {
+          match.date = update.nextDate.trim();
+          if (match.date < nextData.startDate) nextData.startDate = match.date;
+          if (match.date > nextData.endDate) nextData.endDate = match.date;
+        }
         if (update.nextLabel?.trim()) match.label = update.nextLabel.trim();
         if (update.details?.trim()) match.details = update.details.trim();
         if (update.booking?.trim()) match.booking = update.booking.trim();

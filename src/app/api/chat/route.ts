@@ -71,6 +71,7 @@ export async function POST(request: Request) {
                     text: { type: ["string", "null"] },
                     date: { type: ["string", "null"] },
                     label: { type: ["string", "null"] },
+                    nextDate: { type: ["string", "null"] },
                     details: { type: ["string", "null"] },
                     emoji: { type: ["string", "null"] },
                     locked: { type: ["boolean", "null"] },
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
                     confirmation: { type: ["string", "null"] },
                     location: { type: ["string", "null"] },
                   },
-                  required: ["type", "text", "date", "label", "details", "emoji", "locked", "title", "summary", "nextLabel", "fromDate", "toDate", "booking", "name", "nextName", "address", "phone", "confirmation", "location"],
+                  required: ["type", "text", "date", "label", "nextDate", "details", "emoji", "locked", "title", "summary", "nextLabel", "fromDate", "toDate", "booking", "name", "nextName", "address", "phone", "confirmation", "location"],
                 },
               },
             },
@@ -110,6 +111,7 @@ export async function POST(request: Request) {
         "For add_event, default to the currently selected day unless the user clearly provided another date.",
         "For update_event and delete_event, use the exact current event label when possible.",
         "For update_flight and update_hotel, use existing labels/names from the trip context when possible.",
+        "When moving a flight to another day, keep the current date in date and put the new date in nextDate.",
       ].join(" "),
       input: [
         {
@@ -182,6 +184,7 @@ function parseAgentResponse(raw: string): { reply: string; updates: TripUpdateAc
         title?: string | null;
         summary?: string | null;
         nextLabel?: string | null;
+        nextDate?: string | null;
         fromDate?: string | null;
         toDate?: string | null;
         booking?: string | null;
@@ -245,6 +248,7 @@ function parseAgentResponse(raw: string): { reply: string; updates: TripUpdateAc
                 type: "update_flight",
                 date: item.date.trim(),
                 label: item.label.trim(),
+                nextDate: item.nextDate?.trim() || undefined,
                 nextLabel: item.nextLabel?.trim() || undefined,
                 details: item.details?.trim() || undefined,
                 booking: item.booking?.trim() || undefined,
