@@ -99,11 +99,21 @@ type DayHotelForm = {
   checkOut: string;
 };
 
+type DayManagementTab = "general" | "location" | "flight" | "hotel" | "car";
+
 const dayPlanPeriods: Array<{ id: DayPlanPeriod; title: string; helper: string }> = [
   { id: "morning", title: "בוקר", helper: "פתיחה נכונה ליום" },
   { id: "afternoon", title: "צהריים", helper: "עומק הפעילות" },
   { id: "evening", title: "ערב", helper: "סגירת היום" },
   { id: "logistics", title: "לוגיסטיקה", helper: "מעברים, לינה ומסמכים" },
+];
+
+const dayManagementTabs: Array<{ id: DayManagementTab; label: string; emoji: string }> = [
+  { id: "general", label: "תכנון כללי", emoji: "🗓️" },
+  { id: "location", label: "מיקום", emoji: "📍" },
+  { id: "flight", label: "טיסה", emoji: "✈️" },
+  { id: "hotel", label: "מלון", emoji: "🏨" },
+  { id: "car", label: "רכב", emoji: "🚗" },
 ];
 
 const RealTripMap = dynamic(
@@ -160,6 +170,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const [hotelForm, setHotelForm] = useState<DayHotelForm>(() => buildHotelForm(initialResolvedDays[0]?.hotels[0], initialResolvedDays[0]?.date ?? initialDays[0]?.date ?? ""));
   const [planForm, setPlanForm] = useState("");
   const [isDayManagementOpen, setIsDayManagementOpen] = useState(false);
+  const [activeDayManagementTab, setActiveDayManagementTab] = useState<DayManagementTab>("general");
   const [isPending, startTransition] = useTransition();
   const days = buildTripDays(currentTripData).map((day) => applyDayPresentationOverrides(day, currentTripData));
   const activeSelectedDate = days.some((day) => day.date === selectedDate) ? selectedDate : (days[0]?.date ?? "");
@@ -667,85 +678,113 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
           </button>
           {isDayManagementOpen ? (
           <div className="day-management-grid">
-            <section className="day-admin-card">
-              <div className="day-admin-head">
-                <strong>מיקום</strong>
-                <div className="day-admin-actions">
-                  <Button variant="glass" size="sm" type="button" onClick={saveLocation}>שמור</Button>
-                  <Button variant="ghost" size="sm" type="button" onClick={removeLocation}>הסר</Button>
-                </div>
-              </div>
-              <div className="day-admin-fields">
-                <input className="day-admin-input" value={locationForm.name} onChange={(event) => setLocationForm((current) => ({ ...current, name: event.target.value }))} placeholder="שם מיקום" />
-                <input className="day-admin-input" value={locationForm.region} onChange={(event) => setLocationForm((current) => ({ ...current, region: event.target.value }))} placeholder="אזור / region" />
-                <div className="day-admin-inline">
-                  <input className="day-admin-input" value={locationForm.lat} onChange={(event) => setLocationForm((current) => ({ ...current, lat: event.target.value }))} placeholder="Lat" />
-                  <input className="day-admin-input" value={locationForm.lng} onChange={(event) => setLocationForm((current) => ({ ...current, lng: event.target.value }))} placeholder="Lng" />
-                </div>
-              </div>
-            </section>
-
-            <section className="day-admin-card">
-              <div className="day-admin-head">
-                <strong>טיסה</strong>
-                <div className="day-admin-actions">
-                  <Button variant="glass" size="sm" type="button" onClick={saveFlight}>{selectedDay.flights.length ? "שמור" : "הוסף"}</Button>
-                  <Button variant="ghost" size="sm" type="button" onClick={removeFlight} disabled={!selectedDay.flights.length}>הסר</Button>
-                </div>
-              </div>
-              <div className="day-admin-fields">
-                <input className="day-admin-input" value={flightForm.label} onChange={(event) => setFlightForm((current) => ({ ...current, label: event.target.value }))} placeholder="כותרת טיסה" />
-                <textarea className="day-admin-textarea" value={flightForm.details} onChange={(event) => setFlightForm((current) => ({ ...current, details: event.target.value }))} placeholder="TLV → ZRH → JFK | המראה 04:50 | נחיתה 12:50" />
-                <input className="day-admin-input" value={flightForm.booking} onChange={(event) => setFlightForm((current) => ({ ...current, booking: event.target.value }))} placeholder="מספר הזמנה / הערה" />
-              </div>
-            </section>
-
-            <section className="day-admin-card">
-              <div className="day-admin-head">
-                <strong>מלון</strong>
-                <div className="day-admin-actions">
-                  <Button variant="glass" size="sm" type="button" onClick={saveHotel}>{selectedDay.hotels.length ? "שמור" : "הוסף"}</Button>
-                  <Button variant="ghost" size="sm" type="button" onClick={removeHotel} disabled={!selectedDay.hotels.length}>הסר</Button>
-                </div>
-              </div>
-              <div className="day-admin-fields">
-                <input className="day-admin-input" value={hotelForm.name} onChange={(event) => setHotelForm((current) => ({ ...current, name: event.target.value }))} placeholder="שם מלון" />
-                <input className="day-admin-input" value={hotelForm.location} onChange={(event) => setHotelForm((current) => ({ ...current, location: event.target.value }))} placeholder="מיקום" />
-                <input className="day-admin-input" value={hotelForm.address} onChange={(event) => setHotelForm((current) => ({ ...current, address: event.target.value }))} placeholder="כתובת" />
-                <div className="day-admin-inline">
-                  <input className="day-admin-input" value={hotelForm.phone} onChange={(event) => setHotelForm((current) => ({ ...current, phone: event.target.value }))} placeholder="טלפון" />
-                  <input className="day-admin-input" value={hotelForm.confirmation} onChange={(event) => setHotelForm((current) => ({ ...current, confirmation: event.target.value }))} placeholder="אישור" />
-                </div>
-                {!selectedDay.hotels.length ? <input className="day-admin-input" value={hotelForm.checkOut} onChange={(event) => setHotelForm((current) => ({ ...current, checkOut: event.target.value }))} placeholder="Check-out YYYY-MM-DD" /> : null}
-              </div>
-            </section>
-
-            <section className="day-admin-card">
-              <div className="day-admin-head">
-                <strong>רכב</strong>
-                <div className="day-admin-actions">
-                  <Button variant="glass" size="sm" type="button" onClick={saveCar}>{selectedDay.car ? "שמור" : "הוסף"}</Button>
-                  <Button variant="ghost" size="sm" type="button" onClick={removeCar} disabled={!selectedDay.car}>הסר</Button>
-                </div>
-              </div>
-              <div className="day-admin-fields">
-                <input className="day-admin-input" value={carForm.provider} onChange={(event) => setCarForm((current) => ({ ...current, provider: event.target.value }))} placeholder="חברה / סוג רכב" />
-                <input className="day-admin-input" value={carForm.pickup} onChange={(event) => setCarForm((current) => ({ ...current, pickup: event.target.value }))} placeholder="איסוף" />
-                <input className="day-admin-input" value={carForm.dropoff} onChange={(event) => setCarForm((current) => ({ ...current, dropoff: event.target.value }))} placeholder="החזרה" />
-                <input className="day-admin-input" value={carForm.confirmation} onChange={(event) => setCarForm((current) => ({ ...current, confirmation: event.target.value }))} placeholder="אישור" />
-                <textarea className="day-admin-textarea" value={carForm.notes} onChange={(event) => setCarForm((current) => ({ ...current, notes: event.target.value }))} placeholder="הערות רכב / חניה / דרייב" />
-              </div>
-            </section>
-
             <section className="day-admin-card day-admin-card-wide">
-              <div className="day-admin-head">
-                <strong>תכנון כללי של היום</strong>
-                <div className="day-admin-actions">
-                  <Button variant="glass" size="sm" type="button" onClick={saveGeneralPlan}>הוסף פריטים</Button>
-                  <Button variant="ghost" size="sm" type="button" onClick={() => setPlanForm("")}>נקה</Button>
-                </div>
+              <div className="day-management-tabs" role="tablist" aria-label="ניהול יום">
+                {dayManagementTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeDayManagementTab === tab.id}
+                    className={`day-management-tab ${activeDayManagementTab === tab.id ? "active" : ""}`}
+                    onClick={() => setActiveDayManagementTab(tab.id)}
+                  >
+                    <span>{tab.emoji}</span>
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
               </div>
-              <textarea className="day-admin-textarea day-admin-plan" value={planForm} onChange={(event) => setPlanForm(event.target.value)} placeholder={"כל שורה תהפוך לפריט נפרד.\nאפשר גם בפורמט: כותרת: פירוט"} />
+
+              {activeDayManagementTab === "general" ? (
+                <>
+                  <div className="day-admin-head">
+                    <strong>🗓️ תכנון כללי של היום</strong>
+                    <div className="day-admin-actions">
+                      <Button variant="glass" size="sm" type="button" onClick={saveGeneralPlan}>הוסף פריטים</Button>
+                      <Button variant="ghost" size="sm" type="button" onClick={() => setPlanForm("")}>נקה</Button>
+                    </div>
+                  </div>
+                  <textarea className="day-admin-textarea day-admin-plan" value={planForm} onChange={(event) => setPlanForm(event.target.value)} placeholder={"כל שורה תהפוך לפריט נפרד.\nאפשר גם בפורמט: כותרת: פירוט"} />
+                </>
+              ) : null}
+
+              {activeDayManagementTab === "location" ? (
+                <>
+                  <div className="day-admin-head">
+                    <strong>📍 מיקום</strong>
+                    <div className="day-admin-actions">
+                      <Button variant="glass" size="sm" type="button" onClick={saveLocation}>שמור</Button>
+                      <Button variant="ghost" size="sm" type="button" onClick={removeLocation}>הסר</Button>
+                    </div>
+                  </div>
+                  <div className="day-admin-fields">
+                    <input className="day-admin-input" value={locationForm.name} onChange={(event) => setLocationForm((current) => ({ ...current, name: event.target.value }))} placeholder="שם מיקום" />
+                    <input className="day-admin-input" value={locationForm.region} onChange={(event) => setLocationForm((current) => ({ ...current, region: event.target.value }))} placeholder="אזור / region" />
+                    <div className="day-admin-inline">
+                      <input className="day-admin-input" value={locationForm.lat} onChange={(event) => setLocationForm((current) => ({ ...current, lat: event.target.value }))} placeholder="Lat" />
+                      <input className="day-admin-input" value={locationForm.lng} onChange={(event) => setLocationForm((current) => ({ ...current, lng: event.target.value }))} placeholder="Lng" />
+                    </div>
+                  </div>
+                </>
+              ) : null}
+
+              {activeDayManagementTab === "flight" ? (
+                <>
+                  <div className="day-admin-head">
+                    <strong>✈️ טיסה</strong>
+                    <div className="day-admin-actions">
+                      <Button variant="glass" size="sm" type="button" onClick={saveFlight}>{selectedDay.flights.length ? "שמור" : "הוסף"}</Button>
+                      <Button variant="ghost" size="sm" type="button" onClick={removeFlight} disabled={!selectedDay.flights.length}>הסר</Button>
+                    </div>
+                  </div>
+                  <div className="day-admin-fields">
+                    <input className="day-admin-input" value={flightForm.label} onChange={(event) => setFlightForm((current) => ({ ...current, label: event.target.value }))} placeholder="כותרת טיסה" />
+                    <textarea className="day-admin-textarea" value={flightForm.details} onChange={(event) => setFlightForm((current) => ({ ...current, details: event.target.value }))} placeholder="TLV → ZRH → JFK | המראה 04:50 | נחיתה 12:50" />
+                    <input className="day-admin-input" value={flightForm.booking} onChange={(event) => setFlightForm((current) => ({ ...current, booking: event.target.value }))} placeholder="מספר הזמנה / הערה" />
+                  </div>
+                </>
+              ) : null}
+
+              {activeDayManagementTab === "hotel" ? (
+                <>
+                  <div className="day-admin-head">
+                    <strong>🏨 מלון</strong>
+                    <div className="day-admin-actions">
+                      <Button variant="glass" size="sm" type="button" onClick={saveHotel}>{selectedDay.hotels.length ? "שמור" : "הוסף"}</Button>
+                      <Button variant="ghost" size="sm" type="button" onClick={removeHotel} disabled={!selectedDay.hotels.length}>הסר</Button>
+                    </div>
+                  </div>
+                  <div className="day-admin-fields">
+                    <input className="day-admin-input" value={hotelForm.name} onChange={(event) => setHotelForm((current) => ({ ...current, name: event.target.value }))} placeholder="שם מלון" />
+                    <input className="day-admin-input" value={hotelForm.location} onChange={(event) => setHotelForm((current) => ({ ...current, location: event.target.value }))} placeholder="מיקום" />
+                    <input className="day-admin-input" value={hotelForm.address} onChange={(event) => setHotelForm((current) => ({ ...current, address: event.target.value }))} placeholder="כתובת" />
+                    <div className="day-admin-inline">
+                      <input className="day-admin-input" value={hotelForm.phone} onChange={(event) => setHotelForm((current) => ({ ...current, phone: event.target.value }))} placeholder="טלפון" />
+                      <input className="day-admin-input" value={hotelForm.confirmation} onChange={(event) => setHotelForm((current) => ({ ...current, confirmation: event.target.value }))} placeholder="אישור" />
+                    </div>
+                    {!selectedDay.hotels.length ? <input className="day-admin-input" value={hotelForm.checkOut} onChange={(event) => setHotelForm((current) => ({ ...current, checkOut: event.target.value }))} placeholder="Check-out YYYY-MM-DD" /> : null}
+                  </div>
+                </>
+              ) : null}
+
+              {activeDayManagementTab === "car" ? (
+                <>
+                  <div className="day-admin-head">
+                    <strong>🚗 רכב</strong>
+                    <div className="day-admin-actions">
+                      <Button variant="glass" size="sm" type="button" onClick={saveCar}>{selectedDay.car ? "שמור" : "הוסף"}</Button>
+                      <Button variant="ghost" size="sm" type="button" onClick={removeCar} disabled={!selectedDay.car}>הסר</Button>
+                    </div>
+                  </div>
+                  <div className="day-admin-fields">
+                    <input className="day-admin-input" value={carForm.provider} onChange={(event) => setCarForm((current) => ({ ...current, provider: event.target.value }))} placeholder="חברה / סוג רכב" />
+                    <input className="day-admin-input" value={carForm.pickup} onChange={(event) => setCarForm((current) => ({ ...current, pickup: event.target.value }))} placeholder="איסוף" />
+                    <input className="day-admin-input" value={carForm.dropoff} onChange={(event) => setCarForm((current) => ({ ...current, dropoff: event.target.value }))} placeholder="החזרה" />
+                    <input className="day-admin-input" value={carForm.confirmation} onChange={(event) => setCarForm((current) => ({ ...current, confirmation: event.target.value }))} placeholder="אישור" />
+                    <textarea className="day-admin-textarea" value={carForm.notes} onChange={(event) => setCarForm((current) => ({ ...current, notes: event.target.value }))} placeholder="הערות רכב / חניה / דרייב" />
+                  </div>
+                </>
+              ) : null}
             </section>
 
             <section className="day-admin-card day-admin-card-wide">
@@ -1067,7 +1106,7 @@ function buildDayPlan(day: TripDay): DayPlanItem[] {
     id: `${day.date}-flight-${flight.label}`,
     title: flight.label,
     details: formatPlanDetails(flight.details),
-    icon: "טיסה",
+    icon: "✈️",
     meta: day.travelMode,
     period: "logistics",
     status: "נעול",
@@ -1093,7 +1132,7 @@ function buildDayPlan(day: TripDay): DayPlanItem[] {
     id: `${day.date}-hotel-${hotel.name}`,
     title: hotel.name,
     details: `${hotel.location} · ${hotel.address}`,
-    icon: "לינה",
+    icon: "🏨",
     meta: hotel.confirmation ? `אישור ${hotel.confirmation}` : "לינה משויכת ליום",
     period: "logistics",
     status: "סגור",
@@ -1106,7 +1145,7 @@ function buildDayPlan(day: TripDay): DayPlanItem[] {
     id: `${day.date}-car-${day.car.provider || "car"}`,
     title: day.car.provider || "רכב ליום",
     details: [day.car.pickup, day.car.dropoff, day.car.notes].filter(Boolean).join(" · "),
-    icon: "רכב",
+    icon: "🚗",
     meta: day.car.confirmation ? `אישור ${day.car.confirmation}` : "סידור רכב ליום",
     period: "logistics",
     status: "מנוהל",
@@ -1122,7 +1161,7 @@ function buildDayPlan(day: TripDay): DayPlanItem[] {
     id: `${day.date}-open-day`,
     title: "יום פתוח לתכנון",
     details: "אין עדיין תוכן קשיח ליום הזה. אפשר לבקש מה-AI לבנות הצעה לפי אזור, קצב ורמת עומס.",
-    icon: "AI",
+    icon: "🗓️",
     meta: day.location.name,
     period: "morning",
     status: "פתוח",
