@@ -158,7 +158,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const [carForm, setCarForm] = useState<DayCarForm>(() => buildCarForm(initialResolvedDays[0]?.car ?? null));
   const [flightForm, setFlightForm] = useState<DayFlightForm>(() => buildFlightForm(initialResolvedDays[0]?.flights[0]));
   const [hotelForm, setHotelForm] = useState<DayHotelForm>(() => buildHotelForm(initialResolvedDays[0]?.hotels[0], initialResolvedDays[0]?.date ?? initialDays[0]?.date ?? ""));
-  const [planForm, setPlanForm] = useState(() => initialResolvedDays[0]?.summary || "");
+  const [planForm, setPlanForm] = useState("");
   const [isDayManagementOpen, setIsDayManagementOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const days = buildTripDays(currentTripData).map((day) => applyDayPresentationOverrides(day, currentTripData));
@@ -296,7 +296,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
     setCarForm(buildCarForm(day.car));
     setFlightForm(buildFlightForm(day.flights[0]));
     setHotelForm(buildHotelForm(day.hotels[0], day.date));
-    setPlanForm(day.summary);
+    setPlanForm("");
   }
 
   function saveLocation() {
@@ -316,10 +316,10 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   }
 
   function saveGeneralPlan() {
-    const summary = planForm.trim();
-    applyDirectUpdates([summary
-      ? { type: "update_day_summary", date: activeSelectedDate, summary }
-      : { type: "clear_day_summary", date: activeSelectedDate }]);
+    const updates = parsePlanDraftItems(planForm, activeSelectedDate);
+    if (!updates.length) return;
+    applyDirectUpdates(updates);
+    setPlanForm("");
   }
 
   function saveCar() {
@@ -741,11 +741,11 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
               <div className="day-admin-head">
                 <strong>תכנון כללי של היום</strong>
                 <div className="day-admin-actions">
-                  <Button variant="glass" size="sm" type="button" onClick={saveGeneralPlan}>שמור</Button>
-                  <Button variant="ghost" size="sm" type="button" onClick={() => applyDirectUpdates([{ type: "clear_day_summary", date: activeSelectedDate }])}>הסר</Button>
+                  <Button variant="glass" size="sm" type="button" onClick={saveGeneralPlan}>הוסף פריטים</Button>
+                  <Button variant="ghost" size="sm" type="button" onClick={() => setPlanForm("")}>נקה</Button>
                 </div>
               </div>
-              <textarea className="day-admin-textarea day-admin-plan" value={planForm} onChange={(event) => setPlanForm(event.target.value)} placeholder="כתוב כאן את התכנון הכללי של היום, דגשים, קצב, חלונות זמן והערות." />
+              <textarea className="day-admin-textarea day-admin-plan" value={planForm} onChange={(event) => setPlanForm(event.target.value)} placeholder={"כל שורה תהפוך לפריט נפרד.\nאפשר גם בפורמט: כותרת: פירוט"} />
             </section>
 
             <section className="day-admin-card day-admin-card-wide">
@@ -1265,6 +1265,39 @@ function parseOptionalNumber(value: string) {
   if (!trimmed) return undefined;
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parsePlanDraftItems(value: string, date: string): TripUpdateAction[] {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const colonIndex = line.indexOf(":");
+      const dashIndex = line.indexOf(" - ");
+      const separatorIndex = colonIndex >= 0 ? colonIndex : dashIndex;
+
+      if (separatorIndex >= 0) {
+        const label = line.slice(0, separatorIndex).trim();
+        const details = line.slice(separatorIndex + (colonIndex >= 0 ? 1 : 3)).trim();
+        return {
+          type: "add_event" as const,
+          date,
+          label: label || details,
+          details: details || label,
+          emoji: "📍",
+        };
+      }
+
+      return {
+        type: "add_event" as const,
+        date,
+        label: line,
+        details: line,
+        emoji: "📍",
+      };
+    })
+    .filter((item) => item.label.trim() && item.details.trim());
 }
 
 function resolveFlightEditorTarget(day: TripDay, flights: Flight[]) {
