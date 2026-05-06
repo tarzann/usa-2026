@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { type DayAttachment } from "@/lib/attachments";
+import { buildImmediateUpdateReply, inferTripUpdates } from "@/lib/trip-agent";
 import type { FocusedMapLocation } from "@/components/real-trip-map";
 import { Button } from "@/components/ui/button";
 import {
@@ -175,9 +176,16 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
     startTransition(async () => {
       const fallback = buildAiAnswer(prompt, selectedDay, days, currentTripData);
       const historyForRequest = [...chatHistory.slice(-8), { role: "user" as const, body: prompt }];
+      const immediateUpdates = inferTripUpdates(prompt, selectedDay, currentTripData);
 
       setChatHistory((current) => [...current, { role: "user", body: prompt }]);
       setChatInput("");
+
+      if (immediateUpdates.length) {
+        setCurrentTripData((current) => applyTripUpdates(current, immediateUpdates));
+        setChatHistory((current) => [...current, { role: "assistant", body: buildImmediateUpdateReply(immediateUpdates) }]);
+        return;
+      }
 
       try {
         const controller = new AbortController();
