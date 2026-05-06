@@ -68,7 +68,9 @@ export type TripUpdateAction =
   | { type: "update_day_summary"; date: string; summary: string }
   | { type: "update_event"; date: string; label: string; nextLabel?: string; details?: string; emoji?: string; locked?: boolean }
   | { type: "delete_event"; date: string; label: string }
-  | { type: "move_event"; fromDate: string; toDate: string; label: string };
+  | { type: "move_event"; fromDate: string; toDate: string; label: string }
+  | { type: "update_flight"; date: string; label: string; nextLabel?: string; details?: string; booking?: string }
+  | { type: "update_hotel"; name: string; nextName?: string; address?: string; phone?: string; confirmation?: string; location?: string };
 
 export type TripLocation = {
   name: string;
@@ -211,6 +213,30 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
             event.label.trim().toLowerCase() === update.label.trim().toLowerCase(),
         );
         if (match) match.date = update.toDate;
+        break;
+      }
+      case "update_flight": {
+        const match = nextData.flights.find(
+          (flight) =>
+            flight.date === update.date &&
+            flight.label.trim().toLowerCase() === update.label.trim().toLowerCase(),
+        );
+        if (!match) break;
+        if (update.nextLabel?.trim()) match.label = update.nextLabel.trim();
+        if (update.details?.trim()) match.details = update.details.trim();
+        if (update.booking?.trim()) match.booking = update.booking.trim();
+        break;
+      }
+      case "update_hotel": {
+        const match = nextData.hotels.find(
+          (hotel) => hotel.name.trim().toLowerCase() === update.name.trim().toLowerCase(),
+        );
+        if (!match) break;
+        if (update.nextName?.trim()) match.name = update.nextName.trim();
+        if (update.address?.trim()) match.address = update.address.trim();
+        if (update.phone?.trim()) match.phone = update.phone.trim();
+        if (update.confirmation?.trim()) match.confirmation = update.confirmation.trim();
+        if (update.location?.trim()) match.location = update.location.trim();
         break;
       }
     }

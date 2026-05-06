@@ -55,7 +55,7 @@ export async function POST(request: Request) {
                   type: "object",
                   additionalProperties: false,
                   properties: {
-                    type: { type: "string", enum: ["add_todo", "complete_todo", "reopen_todo", "add_event", "update_day_title", "update_day_summary", "update_event", "delete_event", "move_event"] },
+                    type: { type: "string", enum: ["add_todo", "complete_todo", "reopen_todo", "add_event", "update_day_title", "update_day_summary", "update_event", "delete_event", "move_event", "update_flight", "update_hotel"] },
                     text: { type: ["string", "null"] },
                     date: { type: ["string", "null"] },
                     label: { type: ["string", "null"] },
@@ -67,8 +67,15 @@ export async function POST(request: Request) {
                     nextLabel: { type: ["string", "null"] },
                     fromDate: { type: ["string", "null"] },
                     toDate: { type: ["string", "null"] },
+                    booking: { type: ["string", "null"] },
+                    name: { type: ["string", "null"] },
+                    nextName: { type: ["string", "null"] },
+                    address: { type: ["string", "null"] },
+                    phone: { type: ["string", "null"] },
+                    confirmation: { type: ["string", "null"] },
+                    location: { type: ["string", "null"] },
                   },
-                  required: ["type", "text", "date", "label", "details", "emoji", "locked", "title", "summary", "nextLabel", "fromDate", "toDate"],
+                  required: ["type", "text", "date", "label", "details", "emoji", "locked", "title", "summary", "nextLabel", "fromDate", "toDate", "booking", "name", "nextName", "address", "phone", "confirmation", "location"],
                 },
               },
             },
@@ -83,10 +90,11 @@ export async function POST(request: Request) {
         "Be practical, concise, and product-minded. Focus on itinerary quality, logistics, booking gaps, timing, and smart recommendations.",
         "When useful, structure the answer into short sections or bullets, but keep it easy to scan in chat.",
         "When the user explicitly asks to change the trip, return matching updates in the updates array.",
-        "Supported updates are: add_todo, complete_todo, reopen_todo, add_event, update_day_title, update_day_summary, update_event, delete_event, move_event.",
+        "Supported updates are: add_todo, complete_todo, reopen_todo, add_event, update_day_title, update_day_summary, update_event, delete_event, move_event, update_flight, update_hotel.",
         "Only emit updates when the user clearly asked to modify data. Otherwise return an empty updates array.",
         "For add_event, default to the currently selected day unless the user clearly provided another date.",
         "For update_event and delete_event, use the exact current event label when possible.",
+        "For update_flight and update_hotel, use existing labels/names from the trip context when possible.",
       ].join(" "),
       input: [
         {
@@ -160,6 +168,13 @@ function parseAgentResponse(raw: string): { reply: string; updates: TripUpdateAc
         nextLabel?: string | null;
         fromDate?: string | null;
         toDate?: string | null;
+        booking?: string | null;
+        name?: string | null;
+        nextName?: string | null;
+        address?: string | null;
+        phone?: string | null;
+        confirmation?: string | null;
+        location?: string | null;
       }>;
     };
 
@@ -207,6 +222,29 @@ function parseAgentResponse(raw: string): { reply: string; updates: TripUpdateAc
         case "move_event":
           return item.fromDate?.trim() && item.toDate?.trim() && item.label?.trim()
             ? [{ type: "move_event", fromDate: item.fromDate.trim(), toDate: item.toDate.trim(), label: item.label.trim() }]
+            : [];
+        case "update_flight":
+          return item.date?.trim() && item.label?.trim()
+            ? [{
+                type: "update_flight",
+                date: item.date.trim(),
+                label: item.label.trim(),
+                nextLabel: item.nextLabel?.trim() || undefined,
+                details: item.details?.trim() || undefined,
+                booking: item.booking?.trim() || undefined,
+              }]
+            : [];
+        case "update_hotel":
+          return item.name?.trim()
+            ? [{
+                type: "update_hotel",
+                name: item.name.trim(),
+                nextName: item.nextName?.trim() || undefined,
+                address: item.address?.trim() || undefined,
+                phone: item.phone?.trim() || undefined,
+                confirmation: item.confirmation?.trim() || undefined,
+                location: item.location?.trim() || undefined,
+              }]
             : [];
         default:
           return [];
@@ -293,6 +331,27 @@ function inferTripUpdates(prompt: string, selectedDay: TripDay, currentTripData:
       : [];
   }
 
+  if ((normalized.includes("עדכן") || normalized.includes("שנה")) && (normalized.includes("טיסה") || normalized.includes("flight"))) {
+    const label = quoted || findMatchingFlightLabel(text, currentTripData.flights.map((flight) => flight.label));
+    const details = text.split(":")[1]?.trim();
+    const flight = label ? currentTripData.flights.find((item) => item.label === label) : null;
+    return label && details
+      ? [{ type: "update_flight", date: flight?.date || selectedDay.date, label, details }]
+      : [];
+  }
+
+  if ((normalized.includes("עדכן") || normalized.includes("שנה")) && (normalized.includes("מלון") || normalized.includes("לינה") || normalized.includes("hotel"))) {
+    const hotelName = quoted || findMatchingHotelName(text, currentTripData.hotels.map((hotel) => hotel.name));
+    const details = text.split(":")[1]?.trim();
+    if (!hotelName || !details) return [];
+
+    return [{
+      type: "update_hotel",
+      name: hotelName,
+      address: details,
+    }];
+  }
+
   return [];
 }
 
@@ -304,4 +363,14 @@ function findMatchingTodoText(prompt: string, todos: string[]) {
 function findMatchingEventLabel(prompt: string, events: string[]) {
   const normalizedPrompt = prompt.toLowerCase();
   return events.find((event) => normalizedPrompt.includes(event.toLowerCase()));
+}
+
+function findMatchingFlightLabel(prompt: string, flights: string[]) {
+  const normalizedPrompt = prompt.toLowerCase();
+  return flights.find((flight) => normalizedPrompt.includes(flight.toLowerCase()));
+}
+
+function findMatchingHotelName(prompt: string, hotels: string[]) {
+  const normalizedPrompt = prompt.toLowerCase();
+  return hotels.find((hotel) => normalizedPrompt.includes(hotel.toLowerCase()));
 }
