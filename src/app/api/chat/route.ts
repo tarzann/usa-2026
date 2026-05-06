@@ -7,7 +7,7 @@ const MODEL = "gpt-5.4-mini";
 type ChatHistoryItem = { role: "user" | "assistant"; body: string };
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as { prompt?: string; selectedDay?: TripDay; tripData?: TripData; history?: ChatHistoryItem[] };
+  const body = (await request.json()) as { prompt?: string; selectedDay?: TripDay; tripData?: TripData; history?: ChatHistoryItem[]; scope?: "global" | "day" };
   const prompt = body.prompt?.trim();
 
   if (!prompt) {
@@ -20,6 +20,7 @@ export async function POST(request: Request) {
   const fallbackReply = buildAiAnswer(prompt, selectedDay, days, currentTripData);
   const fallbackUpdates = inferTripUpdates(prompt, selectedDay, currentTripData);
   const recentHistory = (body.history || []).slice(-8);
+  const scope = body.scope === "day" ? "day" : "global";
 
   if (fallbackUpdates.length) {
     return NextResponse.json({
@@ -112,6 +113,9 @@ export async function POST(request: Request) {
         "For update_event and delete_event, use the exact current event label when possible.",
         "For update_flight and update_hotel, use existing labels/names from the trip context when possible.",
         "When moving a flight to another day, keep the current date in date and put the new date in nextDate.",
+        scope === "day"
+          ? "This request comes from the day details panel. Focus only on the selected day and avoid changing other days unless the user explicitly names a different date."
+          : "This request comes from the global assistant and may consider the whole trip.",
       ].join(" "),
       input: [
         {

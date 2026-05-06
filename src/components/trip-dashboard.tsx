@@ -26,6 +26,8 @@ type Message = {
   body: string;
 };
 
+type ChatScope = "global" | "day";
+
 type TripDashboardProps = {
   days: TripDay[];
   initialTripData: TripData;
@@ -109,6 +111,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   });
   const [selectedDate, setSelectedDate] = useState(initialDays[0]?.date ?? "");
   const [chatInput, setChatInput] = useState("");
+  const [dayAgentInput, setDayAgentInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [attachments, setAttachments] = useState<DayAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(true);
@@ -121,6 +124,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
       body: `אני רואה מסלול של ${initialDays.length} ימים. בחר יום מהטיימליין, או שאל אותי מה חסר לסגור, איפה יש עומס, ואיך ללטש את התכנון.`,
     },
   ]);
+  const [dayAgentHistory, setDayAgentHistory] = useState<Record<string, Message[]>>({});
   const [isPending, startTransition] = useTransition();
   const days = buildTripDays(currentTripData);
   const activeSelectedDate = days.some((day) => day.date === selectedDate) ? selectedDate : (days[0]?.date ?? "");
@@ -131,6 +135,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const dayStats = getDayStats(selectedDay);
   const smartBrief = buildSmartBrief(selectedDay, nextDay, attachments.length);
   const intentActions = buildIntentActions(selectedDay, currentTripData.flights.length > 0);
+  const currentDayAgentHistory = dayAgentHistory[activeSelectedDate] ?? [buildDayAgentWelcomeMessage(selectedDay)];
 
   useEffect(() => {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentTripData));
@@ -184,20 +189,39 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
     };
   }, [activeSelectedDate]);
 
-  function submitPrompt(prompt: string) {
+  function appendMessage(scope: ChatScope, dayDate: string, message: Message) {
+    if (scope === "day") {
+      setDayAgentHistory((current) => ({
+        ...current,
+        [dayDate]: [...(current[dayDate] ?? [buildDayAgentWelcomeMessage(selectedDay)]), message],
+      }));
+      return;
+    }
+
+    setChatHistory((current) => [...current, message]);
+  }
+
+  function submitPrompt(prompt: string, scope: ChatScope = "global") {
     if (!prompt.trim()) return;
 
     startTransition(async () => {
-      const fallback = buildAiAnswer(prompt, selectedDay, days, currentTripData);
-      const historyForRequest = [...chatHistory.slice(-8), { role: "user" as const, body: prompt }];
-      const immediateUpdates = inferTripUpdates(prompt, selectedDay, currentTripData);
+      const scopedDay = selectedDay;
+      const scopedTripData = currentTripData;
+      const fallback = buildAiAnswer(prompt, scopedDay, days, scopedTripData);
+      const sourceHistory = scope === "day" ? currentDayAgentHistory : chatHistory;
+      const historyForRequest = [...sourceHistory.slice(-8), { role: "user" as const, body: prompt }];
+      const immediateUpdates = inferTripUpdates(prompt, scopedDay, scopedTripData);
 
-      setChatHistory((current) => [...current, { role: "user", body: prompt }]);
-      setChatInput("");
+      appendMessage(scope, scopedDay.date, { role: "user", body: prompt });
+      if (scope === "day") {
+        setDayAgentInput("");
+      } else {
+        setChatInput("");
+      }
 
       if (immediateUpdates.length) {
         setCurrentTripData((current) => applyTripUpdates(current, immediateUpdates));
-        setChatHistory((current) => [...current, { role: "assistant", body: buildImmediateUpdateReply(immediateUpdates) }]);
+        appendMessage(scope, scopedDay.date, { role: "assistant", body: buildImmediateUpdateReply(immediateUpdates) });
         return;
       }
 
@@ -207,7 +231,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, selectedDay, tripData: currentTripData, history: historyForRequest }),
+          body: JSON.stringify({ prompt, selectedDay: scopedDay, tripData: scopedTripData, history: historyForRequest, scope }),
           signal: controller.signal,
         });
         window.clearTimeout(timeoutId);
@@ -221,20 +245,17 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
           setCurrentTripData((current) => applyTripUpdates(current, payload.updates || []));
         }
 
-        setChatHistory((current) => [...current, { role: "assistant", body: payload.reply || fallback }]);
+        appendMessage(scope, scopedDay.date, { role: "assistant", body: payload.reply || fallback });
       } catch (error) {
         const message = error instanceof Error
           ? error.name === "AbortError"
             ? "הבקשה נמשכה יותר מדי זמן והופסקה"
             : error.message
           : "chat request failed";
-        setChatHistory((current) => [
-          ...current,
-          {
-            role: "assistant",
-            body: `${fallback}\n\nהערה טכנית: כרגע לא התקבלה תשובה חיה מ-OpenAI (${message}). צריך לוודא ש-OPENAI_API_KEY מוגדר ב-Vercel.`,
-          },
-        ]);
+        appendMessage(scope, scopedDay.date, {
+          role: "assistant",
+          body: `${fallback}\n\nהערה טכנית: כרגע לא התקבלה תשובה חיה מ-OpenAI (${message}). צריך לוודא ש-OPENAI_API_KEY מוגדר ב-Vercel.`,
+        });
       }
     });
   }
@@ -532,6 +553,46 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
               );
             })}
           </div>
+
+          <div className="section-title" style={{ marginTop: "18px" }}>סוכן היום</div>
+          <section className="day-agent-card">
+            <div className="day-agent-head">
+              <div>
+                <strong>Trip AI ליום הזה בלבד</strong>
+                <p>שינויים כאן מתייחסים ל-{formatDate(selectedDay.date)} ולפריטים של היום הנבחר.</p>
+              </div>
+              <span className="chip">יום ממוקד</span>
+            </div>
+            <div className="day-agent-messages">
+              {currentDayAgentHistory.map((message, index) => (
+                <div key={`${selectedDay.date}-${message.role}-${index}`} className={`message ${message.role}`}>
+                  <span className="message-role">{message.role === "user" ? "אתה" : "סוכן היום"}</span>
+                  <div className="message-body">{message.body}</div>
+                </div>
+              ))}
+              {isPending ? (
+                <div className="message assistant">
+                  <span className="message-role">סוכן היום</span>
+                  <div className="message-body">מעדכן את היום הזה...</div>
+                </div>
+              ) : null}
+            </div>
+            <form
+              className="day-agent-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitPrompt(dayAgentInput, "day");
+              }}
+            >
+              <textarea
+                className="day-agent-input"
+                value={dayAgentInput}
+                onChange={(event) => setDayAgentInput(event.target.value)}
+                placeholder='לדוגמה: שנה את כותרת היום ל"יום רגוע במיאמי"'
+              />
+              <Button className="day-agent-submit" variant="primary" type="submit">עדכן יום</Button>
+            </form>
+          </section>
 
           <div className="section-title" style={{ marginTop: "18px" }}>מסמכים וקבצים</div>
           <div className="attachments-actions">
@@ -895,6 +956,13 @@ function buildIntentActions(day: TripDay, hasFlights: boolean): IntentAction[] {
       prompt: `מחק את היום הזה`,
     },
   ];
+}
+
+function buildDayAgentWelcomeMessage(day: TripDay): Message {
+  return {
+    role: "assistant",
+    body: `אני ממוקד רק ב-${formatDate(day.date)}. אפשר לבקש ממני לעדכן כותרת, סיכום, אירועים, טיסה או מלון של היום הזה בלבד.`,
+  };
 }
 
 function resolveFlightEditorTarget(day: TripDay, flights: Flight[]) {
