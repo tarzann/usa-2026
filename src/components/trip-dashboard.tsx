@@ -178,6 +178,8 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const activeSelectedDate = days.some((day) => day.date === selectedDate) ? selectedDate : (days[0]?.date ?? "");
   const selectedDay = days.find((day) => day.date === activeSelectedDate) ?? days[0];
   const nextDay = days[selectedDay.index + 1];
+  const selectedDayLocation = resolveDayDisplayLocation(selectedDay, currentTripData);
+  const nextDayLocation = nextDay ? resolveDayDisplayLocation(nextDay, currentTripData) : null;
   const progress = Math.round(getProgressRatio(currentTripData) * 100);
   const dayPlan = buildDayPlan(selectedDay);
   const dayStats = getDayStats(selectedDay);
@@ -597,7 +599,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
                       </span>
                     ) : null}
                     <div className="day-title">{day.title}</div>
-                    <div className="day-meta">{day.location.name} · {day.travelMode}</div>
+                    <div className="day-meta">{resolveDayDisplayLocation(day, currentTripData).name} · {day.travelMode}</div>
                     <div className="day-preview">{preview}</div>
                     <div className="day-flags">
                       {day.flights.length ? <span className="chip">טיסה</span> : null}
@@ -619,7 +621,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
             </div>
             <div className="detail-actions">
               <span className="chip">{selectedDay.segment ? selectedDay.segment.label : "יום פתוח"}</span>
-              <span className="chip">{selectedDay.location.name}</span>
+              <span className="chip">{selectedDayLocation.name}</span>
               <span className="chip">{selectedDay.travelMode}</span>
             </div>
           </div>
@@ -876,7 +878,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
             <h3>מפת הסיפור של הטיול</h3>
             <p>המפה עכשיו חיה ואינטראקטיבית, עם markers אמיתיים ונתיב שמחבר בין ימי המסלול.</p>
           </div>
-          <span className="badge">{selectedDay.location.region}</span>
+          <span className="badge">{selectedDayLocation.region}</span>
         </div>
         <RealTripMap
           apiKey={googleMapsApiKey}
@@ -887,11 +889,11 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
         <div className="map-note">
           <div className="mini-stat">
             <div className="mini-stat-label">היום הנבחר</div>
-            <div className="mini-stat-value">{selectedDay.location.name}</div>
+            <div className="mini-stat-value">{selectedDayLocation.name}</div>
           </div>
           <div className="mini-stat">
             <div className="mini-stat-label">מחר במסלול</div>
-            <div className="mini-stat-value">{nextDay ? nextDay.location.name : "סיום הטיול"}</div>
+            <div className="mini-stat-value">{nextDayLocation ? nextDayLocation.name : "סיום הטיול"}</div>
           </div>
           <div className="mini-stat">
             <div className="mini-stat-label">פריטים נעולים</div>
@@ -931,7 +933,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
               <div className="logistics-item">
                 <div className="logistics-title"><span>צעד הבא במסלול</span><span>{selectedDay.travelMode}</span></div>
                 <div className="logistics-body">
-                  {selectedDay.location.name} → {nextDay ? nextDay.location.name : "סיום מסלול"}
+                  {selectedDayLocation.name} → {nextDayLocation ? nextDayLocation.name : "סיום מסלול"}
                 </div>
               </div>
               {selectedDay.hotels.length ? selectedDay.hotels.map((hotel) => (
@@ -1278,12 +1280,19 @@ function applyDayPresentationOverrides(day: TripDay, tripData: TripData): TripDa
 
   return {
     ...day,
-    location: {
-      name: overrideLocation.name.trim(),
-      region: overrideLocation.region?.trim() || day.location.region,
-      lat: typeof overrideLocation.lat === "number" ? overrideLocation.lat : day.location.lat,
-      lng: typeof overrideLocation.lng === "number" ? overrideLocation.lng : day.location.lng,
-    },
+    location: resolveDayDisplayLocation(day, tripData),
+  };
+}
+
+function resolveDayDisplayLocation(day: TripDay, tripData: TripData) {
+  const overrideLocation = tripData.dayOverrides?.[day.date]?.location;
+  if (!overrideLocation?.name?.trim()) return day.location;
+
+  return {
+    name: overrideLocation.name.trim(),
+    region: overrideLocation.region?.trim() || day.location.region,
+    lat: typeof overrideLocation.lat === "number" ? overrideLocation.lat : day.location.lat,
+    lng: typeof overrideLocation.lng === "number" ? overrideLocation.lng : day.location.lng,
   };
 }
 
