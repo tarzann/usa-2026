@@ -72,11 +72,10 @@ export function inferTripUpdates(prompt: string, selectedDay: TripDay, currentTr
   }
 
   if ((normalized.includes("עדכן") || normalized.includes("שנה")) && (normalized.includes("טיסה") || normalized.includes("flight"))) {
-    const label = quoted || findMatchingFlightLabel(text, currentTripData.flights.map((flight) => flight.label));
-    const details = text.split(":")[1]?.trim();
-    const flight = label ? currentTripData.flights.find((item) => item.label === label) : null;
-    return label && details
-      ? [{ type: "update_flight", date: flight?.date || selectedDay.date, label, details }]
+    const flight = resolveFlightTarget(text, selectedDay, currentTripData, quoted);
+    const details = extractUpdatePayload(text);
+    return flight && details
+      ? [{ type: "update_flight", date: flight.date, label: flight.label, details }]
       : [];
   }
 
@@ -191,4 +190,55 @@ function shiftDate(dateStr: string, daysToAdd: number) {
     String(current.getMonth() + 1).padStart(2, "0"),
     String(current.getDate()).padStart(2, "0"),
   ].join("-");
+}
+
+function resolveFlightTarget(prompt: string, selectedDay: TripDay, currentTripData: TripData, quoted?: string) {
+  const normalized = prompt.toLowerCase();
+  const flights = [...currentTripData.flights].sort((a, b) => a.date.localeCompare(b.date));
+
+  if (quoted) {
+    const quotedMatch = flights.find((flight) => flight.label === quoted || flight.label.toLowerCase() === quoted.toLowerCase());
+    if (quotedMatch) return quotedMatch;
+  }
+
+  if (selectedDay.flights.length === 1) return selectedDay.flights[0];
+
+  if (
+    normalized.includes("יום האחרון") ||
+    normalized.includes("טיסה אחרונה") ||
+    normalized.includes("הטיסה האחרונה") ||
+    normalized.includes("חזור") ||
+    normalized.includes("return") ||
+    normalized.includes("last flight")
+  ) {
+    return flights[flights.length - 1] ?? null;
+  }
+
+  if (
+    normalized.includes("יום הראשון") ||
+    normalized.includes("טיסה ראשונה") ||
+    normalized.includes("הטיסה הראשונה") ||
+    normalized.includes("הלוך") ||
+    normalized.includes("outbound") ||
+    normalized.includes("first flight")
+  ) {
+    return flights[0] ?? null;
+  }
+
+  const explicitLabel = findMatchingFlightLabel(prompt, flights.map((flight) => flight.label));
+  if (explicitLabel) {
+    return flights.find((flight) => flight.label === explicitLabel) ?? null;
+  }
+
+  return selectedDay.flights[0] ?? null;
+}
+
+function extractUpdatePayload(text: string) {
+  const colonText = text.split(":").slice(1).join(":").trim();
+  if (colonText) return colonText;
+
+  const dashText = text.split(" - ").slice(1).join(" - ").trim();
+  if (dashText) return dashText;
+
+  return "";
 }
