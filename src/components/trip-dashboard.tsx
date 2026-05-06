@@ -55,6 +55,12 @@ type SmartBriefItem = {
   prompt: string;
 };
 
+type IntentAction = {
+  id: string;
+  label: string;
+  prompt: string;
+};
+
 const dayPlanPeriods: Array<{ id: DayPlanPeriod; title: string; helper: string }> = [
   { id: "morning", title: "בוקר", helper: "פתיחה נכונה ליום" },
   { id: "afternoon", title: "צהריים", helper: "עומק הפעילות" },
@@ -117,6 +123,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const dayPlan = buildDayPlan(selectedDay);
   const dayStats = getDayStats(selectedDay);
   const smartBrief = buildSmartBrief(selectedDay, nextDay, attachments.length);
+  const intentActions = buildIntentActions(selectedDay);
 
   useEffect(() => {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentTripData));
@@ -617,6 +624,19 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
                 </Button>
               </div>
             </div>
+            <div className="intent-bar">
+              {intentActions.map((action) => (
+                <Button
+                  key={action.id}
+                  variant="glass"
+                  size="sm"
+                  className="intent-chip"
+                  onClick={() => setChatInput(action.prompt)}
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </div>
             <div className="quick-prompts">
               {quickPrompts.map((prompt) => (
                 <Button key={prompt.title} variant="glass" size="sm" className="prompt-btn" onClick={() => setChatInput(prompt.body)}>
@@ -747,6 +767,51 @@ function getDayStats(day: TripDay) {
     locked: day.flights.length + day.hotels.length + day.events.filter((event) => event.locked).length,
     flexible: day.events.filter((event) => !event.locked).length,
   };
+}
+
+function buildIntentActions(day: TripDay): IntentAction[] {
+  const firstFlight = day.flights[0];
+  const firstHotel = day.hotels[0];
+  const firstEvent = day.events[0];
+
+  return [
+    {
+      id: "day-title",
+      label: "עדכון יום",
+      prompt: `שנה את כותרת היום ל"${day.title}"`,
+    },
+    {
+      id: "add-event",
+      label: "הוספת אירוע",
+      prompt: `הוסף אירוע: `,
+    },
+    {
+      id: "flight",
+      label: "עדכון טיסה",
+      prompt: firstFlight
+        ? `עדכן את הטיסה "${firstFlight.label}": ${firstFlight.details}`
+        : `עדכן את הטיסה של היום האחרון: `,
+    },
+    {
+      id: "hotel",
+      label: "עדכון מלון",
+      prompt: firstHotel
+        ? `עדכן את המלון "${firstHotel.name}": ${firstHotel.address}`
+        : `עדכן את המלון של היום: `,
+    },
+    {
+      id: "move-event",
+      label: "העבר אירוע",
+      prompt: firstEvent
+        ? `העבר את האירוע "${firstEvent.label}" למחר`
+        : `העבר את האירוע למחר: `,
+    },
+    {
+      id: "remove-day",
+      label: "הסר יום",
+      prompt: `מחק את היום הזה`,
+    },
+  ];
 }
 
 function buildSmartBrief(day: TripDay, nextDay: TripDay | undefined, attachmentsCount: number): SmartBriefItem[] {

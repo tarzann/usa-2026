@@ -801,6 +801,30 @@ a {
   gap: 8px;
 }
 
+.intent-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: none;
+}
+
+.intent-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.intent-chip {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+  color: var(--brand-strong);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .prompt-btn {
   justify-content: start;
   height: auto;
