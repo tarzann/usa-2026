@@ -41,6 +41,11 @@ export type Todo = {
   done: boolean;
 };
 
+export type DayOverride = {
+  title?: string;
+  summary?: string;
+};
+
 export type TripData = {
   title: string;
   participants: string[];
@@ -51,13 +56,19 @@ export type TripData = {
   events: EventItem[];
   hotels: Hotel[];
   todos: Todo[];
+  dayOverrides?: Record<string, DayOverride>;
 };
 
 export type TripUpdateAction =
   | { type: "add_todo"; text: string }
   | { type: "complete_todo"; text: string }
   | { type: "reopen_todo"; text: string }
-  | { type: "add_event"; date: string; label: string; details: string; emoji?: string; locked?: boolean };
+  | { type: "add_event"; date: string; label: string; details: string; emoji?: string; locked?: boolean }
+  | { type: "update_day_title"; date: string; title: string }
+  | { type: "update_day_summary"; date: string; summary: string }
+  | { type: "update_event"; date: string; label: string; nextLabel?: string; details?: string; emoji?: string; locked?: boolean }
+  | { type: "delete_event"; date: string; label: string }
+  | { type: "move_event"; fromDate: string; toDate: string; label: string };
 
 export type TripLocation = {
   name: string;
@@ -108,6 +119,7 @@ export function sanitizeTripData(data: TripData): TripData {
     ...data,
     events: data.events.filter((event) => isDateInTrip(event.date, data)),
     segments: data.segments.filter((segment) => segment.endDate >= data.startDate && segment.startDate <= data.endDate),
+    dayOverrides: data.dayOverrides ?? {},
   };
 }
 
@@ -119,7 +131,10 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
     events: [...data.events],
     hotels: [...data.hotels],
     todos: data.todos.map((todo) => ({ ...todo })),
+    dayOverrides: { ...(data.dayOverrides ?? {}) },
   };
+  const dayOverrides = nextData.dayOverrides ?? {};
+  nextData.dayOverrides = dayOverrides;
 
   for (const update of updates) {
     switch (update.type) {
@@ -149,6 +164,53 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
           details: update.details.trim(),
           locked: update.locked,
         });
+        break;
+      }
+      case "update_day_title": {
+        const title = update.title.trim();
+        if (!title) break;
+        dayOverrides[update.date] = {
+          ...(dayOverrides[update.date] ?? {}),
+          title,
+        };
+        break;
+      }
+      case "update_day_summary": {
+        const summary = update.summary.trim();
+        if (!summary) break;
+        dayOverrides[update.date] = {
+          ...(dayOverrides[update.date] ?? {}),
+          summary,
+        };
+        break;
+      }
+      case "update_event": {
+        const match = nextData.events.find(
+          (event) =>
+            event.date === update.date &&
+            event.label.trim().toLowerCase() === update.label.trim().toLowerCase(),
+        );
+        if (!match) break;
+        if (update.nextLabel?.trim()) match.label = update.nextLabel.trim();
+        if (update.details?.trim()) match.details = update.details.trim();
+        if (update.emoji?.trim()) match.emoji = update.emoji.trim();
+        if (typeof update.locked === "boolean") match.locked = update.locked;
+        break;
+      }
+      case "delete_event": {
+        nextData.events = nextData.events.filter(
+          (event) =>
+            !(event.date === update.date && event.label.trim().toLowerCase() === update.label.trim().toLowerCase()),
+        );
+        break;
+      }
+      case "move_event": {
+        const match = nextData.events.find(
+          (event) =>
+            event.date === update.fromDate &&
+            event.label.trim().toLowerCase() === update.label.trim().toLowerCase(),
+        );
+        if (match) match.date = update.toDate;
         break;
       }
     }
@@ -213,6 +275,9 @@ function getSegmentForDate(dateStr: string, data: TripData) {
 }
 
 function buildDayTitle(dateStr: string, flights: Flight[], events: EventItem[], segment: Segment | null, data: TripData) {
+  const overrideTitle = data.dayOverrides?.[dateStr]?.title?.trim();
+  if (overrideTitle) return overrideTitle;
+
   if (flights.length > 0) {
     if (dateStr === data.startDate) return "טיסה מתל אביב לניו יורק";
     if (dateStr === data.endDate) return "טיסת חזרה ממיאמי לתל אביב";
@@ -229,6 +294,12 @@ function buildDaySummary(flights: Flight[], events: EventItem[], hotels: Hotel[]
   if (events.length > 0) return events.map((event) => event.details.split("|")[0].trim()).join(" · ");
   if (hotels.length > 0) return `יום רגוע באזור ${hotels[0].location} עם לינה ב-${hotels[0].name}.`;
   return "אין עדיין תכנון קשיח ליום הזה, וזה מקום טוב ל-AI להציע אופטימיזציה.";
+}
+
+function buildDaySummaryWithOverrides(dateStr: string, flights: Flight[], events: EventItem[], hotels: Hotel[], data: TripData) {
+  const overrideSummary = data.dayOverrides?.[dateStr]?.summary?.trim();
+  if (overrideSummary) return overrideSummary;
+  return buildDaySummary(flights, events, hotels);
 }
 
 function detectTravelMode(title: string, summary: string) {
@@ -259,7 +330,7 @@ export function buildTripDays(data: TripData = tripData) {
     const hotels = getHotelsForDate(dateStr, data);
     const segment = getSegmentForDate(dateStr, data);
     const title = buildDayTitle(dateStr, flights, events, segment, data);
-    const summary = buildDaySummary(flights, events, hotels);
+    const summary = buildDaySummaryWithOverrides(dateStr, flights, events, hotels, data);
     const location = getDayLocation(title, summary, segment);
     const pendingTodos = data.todos
       .filter((todo) => {

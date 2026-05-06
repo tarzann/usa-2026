@@ -55,15 +55,20 @@ export async function POST(request: Request) {
                   type: "object",
                   additionalProperties: false,
                   properties: {
-                    type: { type: "string", enum: ["add_todo", "complete_todo", "reopen_todo", "add_event"] },
+                    type: { type: "string", enum: ["add_todo", "complete_todo", "reopen_todo", "add_event", "update_day_title", "update_day_summary", "update_event", "delete_event", "move_event"] },
                     text: { type: ["string", "null"] },
                     date: { type: ["string", "null"] },
                     label: { type: ["string", "null"] },
                     details: { type: ["string", "null"] },
                     emoji: { type: ["string", "null"] },
                     locked: { type: ["boolean", "null"] },
+                    title: { type: ["string", "null"] },
+                    summary: { type: ["string", "null"] },
+                    nextLabel: { type: ["string", "null"] },
+                    fromDate: { type: ["string", "null"] },
+                    toDate: { type: ["string", "null"] },
                   },
-                  required: ["type", "text", "date", "label", "details", "emoji", "locked"],
+                  required: ["type", "text", "date", "label", "details", "emoji", "locked", "title", "summary", "nextLabel", "fromDate", "toDate"],
                 },
               },
             },
@@ -78,9 +83,10 @@ export async function POST(request: Request) {
         "Be practical, concise, and product-minded. Focus on itinerary quality, logistics, booking gaps, timing, and smart recommendations.",
         "When useful, structure the answer into short sections or bullets, but keep it easy to scan in chat.",
         "When the user explicitly asks to change the trip, return matching updates in the updates array.",
-        "Supported updates are: add_todo, complete_todo, reopen_todo, add_event.",
+        "Supported updates are: add_todo, complete_todo, reopen_todo, add_event, update_day_title, update_day_summary, update_event, delete_event, move_event.",
         "Only emit updates when the user clearly asked to modify data. Otherwise return an empty updates array.",
         "For add_event, default to the currently selected day unless the user clearly provided another date.",
+        "For update_event and delete_event, use the exact current event label when possible.",
       ].join(" "),
       input: [
         {
@@ -149,6 +155,11 @@ function parseAgentResponse(raw: string): { reply: string; updates: TripUpdateAc
         details?: string | null;
         emoji?: string | null;
         locked?: boolean | null;
+        title?: string | null;
+        summary?: string | null;
+        nextLabel?: string | null;
+        fromDate?: string | null;
+        toDate?: string | null;
       }>;
     };
 
@@ -168,6 +179,34 @@ function parseAgentResponse(raw: string): { reply: string; updates: TripUpdateAc
                 emoji: item.emoji?.trim() || undefined,
                 locked: item.locked ?? undefined,
               }]
+            : [];
+        case "update_day_title":
+          return item.date?.trim() && item.title?.trim()
+            ? [{ type: "update_day_title", date: item.date.trim(), title: item.title.trim() }]
+            : [];
+        case "update_day_summary":
+          return item.date?.trim() && item.summary?.trim()
+            ? [{ type: "update_day_summary", date: item.date.trim(), summary: item.summary.trim() }]
+            : [];
+        case "update_event":
+          return item.date?.trim() && item.label?.trim()
+            ? [{
+                type: "update_event",
+                date: item.date.trim(),
+                label: item.label.trim(),
+                nextLabel: item.nextLabel?.trim() || undefined,
+                details: item.details?.trim() || undefined,
+                emoji: item.emoji?.trim() || undefined,
+                locked: typeof item.locked === "boolean" ? item.locked : undefined,
+              }]
+            : [];
+        case "delete_event":
+          return item.date?.trim() && item.label?.trim()
+            ? [{ type: "delete_event", date: item.date.trim(), label: item.label.trim() }]
+            : [];
+        case "move_event":
+          return item.fromDate?.trim() && item.toDate?.trim() && item.label?.trim()
+            ? [{ type: "move_event", fromDate: item.fromDate.trim(), toDate: item.toDate.trim(), label: item.label.trim() }]
             : [];
         default:
           return [];
@@ -216,10 +255,53 @@ function inferTripUpdates(prompt: string, selectedDay: TripDay, currentTripData:
       : [];
   }
 
+  if ((normalized.includes("שנה") || normalized.includes("עדכן")) && normalized.includes("כותרת")) {
+    const title = quoted || text.split(":")[1]?.trim();
+    return title ? [{ type: "update_day_title", date: selectedDay.date, title }] : [];
+  }
+
+  if ((normalized.includes("שנה") || normalized.includes("עדכן")) && (normalized.includes("סיכום") || normalized.includes("תיאור היום"))) {
+    const summary = quoted || text.split(":")[1]?.trim();
+    return summary ? [{ type: "update_day_summary", date: selectedDay.date, summary }] : [];
+  }
+
+  if ((normalized.includes("מחק") || normalized.includes("delete")) && normalized.includes("אירוע")) {
+    const label = quoted || findMatchingEventLabel(text, selectedDay.events.map((event) => event.label));
+    return label ? [{ type: "delete_event", date: selectedDay.date, label }] : [];
+  }
+
+  if ((normalized.includes("העבר") || normalized.includes("move")) && normalized.includes("אירוע")) {
+    const label = quoted || findMatchingEventLabel(text, selectedDay.events.map((event) => event.label));
+    if (!label) return [];
+
+    if (normalized.includes("למחר") || normalized.includes("to tomorrow")) {
+      const days = buildTripDays(currentTripData);
+      const currentDayIndex = days.find((day) => day.date === selectedDay.date)?.index;
+      const nextDay = typeof currentDayIndex === "number" ? days[currentDayIndex + 1] : null;
+      return nextDay ? [{ type: "move_event", fromDate: selectedDay.date, toDate: nextDay.date, label }] : [];
+    }
+
+    const explicitDate = text.match(/\b20\d{2}-\d{2}-\d{2}\b/)?.[0];
+    return explicitDate ? [{ type: "move_event", fromDate: selectedDay.date, toDate: explicitDate, label }] : [];
+  }
+
+  if ((normalized.includes("עדכן") || normalized.includes("שנה")) && normalized.includes("אירוע")) {
+    const label = quoted || findMatchingEventLabel(text, selectedDay.events.map((event) => event.label));
+    const details = text.split(":")[1]?.trim();
+    return label && details
+      ? [{ type: "update_event", date: selectedDay.date, label, details }]
+      : [];
+  }
+
   return [];
 }
 
 function findMatchingTodoText(prompt: string, todos: string[]) {
   const normalizedPrompt = prompt.toLowerCase();
   return todos.find((todo) => normalizedPrompt.includes(todo.toLowerCase()));
+}
+
+function findMatchingEventLabel(prompt: string, events: string[]) {
+  const normalizedPrompt = prompt.toLowerCase();
+  return events.find((event) => normalizedPrompt.includes(event.toLowerCase()));
 }
