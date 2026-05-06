@@ -161,7 +161,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const [planForm, setPlanForm] = useState(() => initialResolvedDays[0]?.summary || "");
   const [isDayManagementOpen, setIsDayManagementOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const days = buildTripDays(currentTripData);
+  const days = buildTripDays(currentTripData).map((day) => applyDayPresentationOverrides(day, currentTripData));
   const activeSelectedDate = days.some((day) => day.date === selectedDate) ? selectedDate : (days[0]?.date ?? "");
   const selectedDay = days.find((day) => day.date === activeSelectedDate) ?? days[0];
   const nextDay = days[selectedDay.index + 1];
@@ -1212,6 +1212,21 @@ function buildLocationForm(day: TripDay | undefined, tripData: TripData): DayLoc
     region: overrideLocation?.region || day.location.region,
     lat: typeof overrideLocation?.lat === "number" ? String(overrideLocation.lat) : "",
     lng: typeof overrideLocation?.lng === "number" ? String(overrideLocation.lng) : "",
+  };
+}
+
+function applyDayPresentationOverrides(day: TripDay, tripData: TripData): TripDay {
+  const overrideLocation = tripData.dayOverrides?.[day.date]?.location;
+  if (!overrideLocation?.name?.trim()) return day;
+
+  return {
+    ...day,
+    location: {
+      name: overrideLocation.name.trim(),
+      region: overrideLocation.region?.trim() || day.location.region,
+      lat: typeof overrideLocation.lat === "number" ? overrideLocation.lat : day.location.lat,
+      lng: typeof overrideLocation.lng === "number" ? overrideLocation.lng : day.location.lng,
+    },
   };
 }
 
