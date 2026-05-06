@@ -12,8 +12,10 @@ import {
   buildTripDays,
   countLockedItems,
   countTransportDays,
+  type DayCar,
   formatDate,
   getProgressRatio,
+  type Hotel,
   sanitizeTripData,
   type Flight,
   type TripData,
@@ -69,6 +71,36 @@ type FlightEditorState = {
   details: string;
 };
 
+type DayLocationForm = {
+  name: string;
+  region: string;
+  lat: string;
+  lng: string;
+};
+
+type DayCarForm = {
+  provider: string;
+  pickup: string;
+  dropoff: string;
+  confirmation: string;
+  notes: string;
+};
+
+type DayFlightForm = {
+  label: string;
+  details: string;
+  booking: string;
+};
+
+type DayHotelForm = {
+  name: string;
+  location: string;
+  address: string;
+  phone: string;
+  confirmation: string;
+  checkOut: string;
+};
+
 const dayPlanPeriods: Array<{ id: DayPlanPeriod; title: string; helper: string }> = [
   { id: "morning", title: "בוקר", helper: "פתיחה נכונה ליום" },
   { id: "afternoon", title: "צהריים", helper: "עומק הפעילות" },
@@ -109,6 +141,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
       return initialTripData;
     }
   });
+  const initialResolvedDays = buildTripDays(currentTripData);
   const [selectedDate, setSelectedDate] = useState(initialDays[0]?.date ?? "");
   const [chatInput, setChatInput] = useState("");
   const [dayAgentInput, setDayAgentInput] = useState("");
@@ -125,6 +158,11 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
     },
   ]);
   const [dayAgentHistory, setDayAgentHistory] = useState<Record<string, Message[]>>({});
+  const [locationForm, setLocationForm] = useState<DayLocationForm>(() => buildLocationForm(initialResolvedDays[0], currentTripData));
+  const [carForm, setCarForm] = useState<DayCarForm>(() => buildCarForm(initialResolvedDays[0]?.car ?? null));
+  const [flightForm, setFlightForm] = useState<DayFlightForm>(() => buildFlightForm(initialResolvedDays[0]?.flights[0]));
+  const [hotelForm, setHotelForm] = useState<DayHotelForm>(() => buildHotelForm(initialResolvedDays[0]?.hotels[0], initialResolvedDays[0]?.date ?? initialDays[0]?.date ?? ""));
+  const [planForm, setPlanForm] = useState(() => currentTripData.dayOverrides?.[initialResolvedDays[0]?.date ?? ""]?.summary || "");
   const [isPending, startTransition] = useTransition();
   const days = buildTripDays(currentTripData);
   const activeSelectedDate = days.some((day) => day.date === selectedDate) ? selectedDate : (days[0]?.date ?? "");
@@ -136,7 +174,6 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const smartBrief = buildSmartBrief(selectedDay, nextDay, attachments.length);
   const intentActions = buildIntentActions(selectedDay, currentTripData.flights.length > 0);
   const currentDayAgentHistory = dayAgentHistory[activeSelectedDate] ?? [buildDayAgentWelcomeMessage(selectedDay)];
-
   useEffect(() => {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentTripData));
   }, [currentTripData]);
@@ -146,6 +183,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
     setAttachmentsError("");
     setFocusedLocation(null);
     setSelectedDate(date);
+    syncDayManagementForms(date, currentTripData);
   }
 
   useEffect(() => {
@@ -262,9 +300,118 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
 
   function applyDirectUpdates(updates: TripUpdateAction[]) {
     if (!updates.length) return;
-
-    setCurrentTripData((current) => applyTripUpdates(current, updates));
+    const nextTripData = applyTripUpdates(currentTripData, updates);
+    setCurrentTripData(nextTripData);
+    syncDayManagementForms(activeSelectedDate, nextTripData);
     setChatHistory((current) => [...current, { role: "assistant", body: buildImmediateUpdateReply(updates) }]);
+  }
+
+  function syncDayManagementForms(date: string, tripData: TripData) {
+    const day = buildTripDays(tripData).find((item) => item.date === date);
+    if (!day) return;
+    setLocationForm(buildLocationForm(day, tripData));
+    setCarForm(buildCarForm(day.car));
+    setFlightForm(buildFlightForm(day.flights[0]));
+    setHotelForm(buildHotelForm(day.hotels[0], day.date));
+    setPlanForm(tripData.dayOverrides?.[day.date]?.summary || "");
+  }
+
+  function saveLocation() {
+    if (!locationForm.name.trim()) return;
+    applyDirectUpdates([{
+      type: "update_location",
+      date: activeSelectedDate,
+      name: locationForm.name.trim(),
+      region: locationForm.region.trim() || undefined,
+      lat: locationForm.lat.trim() ? Number(locationForm.lat) : undefined,
+      lng: locationForm.lng.trim() ? Number(locationForm.lng) : undefined,
+    }]);
+  }
+
+  function removeLocation() {
+    applyDirectUpdates([{ type: "clear_location", date: activeSelectedDate }]);
+  }
+
+  function saveGeneralPlan() {
+    const summary = planForm.trim();
+    applyDirectUpdates([summary
+      ? { type: "update_day_summary", date: activeSelectedDate, summary }
+      : { type: "clear_day_summary", date: activeSelectedDate }]);
+  }
+
+  function saveCar() {
+    if (!Object.values(carForm).some((value) => value.trim())) return;
+    applyDirectUpdates([{
+      type: "update_car",
+      date: activeSelectedDate,
+      provider: carForm.provider.trim() || undefined,
+      pickup: carForm.pickup.trim() || undefined,
+      dropoff: carForm.dropoff.trim() || undefined,
+      confirmation: carForm.confirmation.trim() || undefined,
+      notes: carForm.notes.trim() || undefined,
+    }]);
+  }
+
+  function removeCar() {
+    applyDirectUpdates([{ type: "clear_car", date: activeSelectedDate }]);
+  }
+
+  function saveFlight() {
+    if (!flightForm.label.trim() || !flightForm.details.trim()) return;
+    const existingFlight = selectedDay.flights[0];
+    applyDirectUpdates([existingFlight
+      ? {
+          type: "update_flight",
+          date: existingFlight.date,
+          label: existingFlight.label,
+          nextLabel: flightForm.label.trim() !== existingFlight.label ? flightForm.label.trim() : undefined,
+          details: flightForm.details.trim(),
+          booking: flightForm.booking.trim() || undefined,
+        }
+      : {
+          type: "add_flight",
+          date: activeSelectedDate,
+          label: flightForm.label.trim(),
+          details: flightForm.details.trim(),
+          booking: flightForm.booking.trim() || undefined,
+        }]);
+  }
+
+  function removeFlight() {
+    const existingFlight = selectedDay.flights[0];
+    if (!existingFlight) return;
+    applyDirectUpdates([{ type: "delete_flight", date: existingFlight.date, label: existingFlight.label }]);
+  }
+
+  function saveHotel() {
+    if (!hotelForm.name.trim() || !hotelForm.address.trim() || !hotelForm.location.trim()) return;
+    const existingHotel = selectedDay.hotels[0];
+    applyDirectUpdates([existingHotel
+      ? {
+          type: "update_hotel",
+          name: existingHotel.name,
+          nextName: hotelForm.name.trim() !== existingHotel.name ? hotelForm.name.trim() : undefined,
+          address: hotelForm.address.trim(),
+          phone: hotelForm.phone.trim() || undefined,
+          confirmation: hotelForm.confirmation.trim() || undefined,
+          location: hotelForm.location.trim(),
+        }
+      : {
+          type: "add_hotel",
+          name: hotelForm.name.trim(),
+          location: hotelForm.location.trim(),
+          checkIn: activeSelectedDate,
+          checkOut: hotelForm.checkOut || shiftIsoDate(activeSelectedDate, 1),
+          address: hotelForm.address.trim(),
+          phone: hotelForm.phone.trim() || undefined,
+          confirmation: hotelForm.confirmation.trim() || undefined,
+        }]);
+  }
+
+  function removeHotel() {
+    const existingHotel = selectedDay.hotels[0];
+    if (!existingHotel) return;
+    applyDirectUpdates([{ type: "delete_hotel", name: existingHotel.name, checkIn: existingHotel.checkIn }]);
   }
 
   function openFlightEditor() {
@@ -520,6 +667,90 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
             })}
           </div>
 
+          <div className="section-title" style={{ marginTop: "18px" }}>ניהול יום</div>
+          <div className="day-management-grid">
+            <section className="day-admin-card">
+              <div className="day-admin-head">
+                <strong>מיקום</strong>
+                <div className="day-admin-actions">
+                  <Button variant="glass" size="sm" type="button" onClick={saveLocation}>שמור</Button>
+                  <Button variant="ghost" size="sm" type="button" onClick={removeLocation}>הסר</Button>
+                </div>
+              </div>
+              <div className="day-admin-fields">
+                <input className="day-admin-input" value={locationForm.name} onChange={(event) => setLocationForm((current) => ({ ...current, name: event.target.value }))} placeholder="שם מיקום" />
+                <input className="day-admin-input" value={locationForm.region} onChange={(event) => setLocationForm((current) => ({ ...current, region: event.target.value }))} placeholder="אזור / region" />
+                <div className="day-admin-inline">
+                  <input className="day-admin-input" value={locationForm.lat} onChange={(event) => setLocationForm((current) => ({ ...current, lat: event.target.value }))} placeholder="Lat" />
+                  <input className="day-admin-input" value={locationForm.lng} onChange={(event) => setLocationForm((current) => ({ ...current, lng: event.target.value }))} placeholder="Lng" />
+                </div>
+              </div>
+            </section>
+
+            <section className="day-admin-card">
+              <div className="day-admin-head">
+                <strong>טיסה</strong>
+                <div className="day-admin-actions">
+                  <Button variant="glass" size="sm" type="button" onClick={saveFlight}>{selectedDay.flights.length ? "שמור" : "הוסף"}</Button>
+                  <Button variant="ghost" size="sm" type="button" onClick={removeFlight} disabled={!selectedDay.flights.length}>הסר</Button>
+                </div>
+              </div>
+              <div className="day-admin-fields">
+                <input className="day-admin-input" value={flightForm.label} onChange={(event) => setFlightForm((current) => ({ ...current, label: event.target.value }))} placeholder="כותרת טיסה" />
+                <textarea className="day-admin-textarea" value={flightForm.details} onChange={(event) => setFlightForm((current) => ({ ...current, details: event.target.value }))} placeholder="TLV → ZRH → JFK | המראה 04:50 | נחיתה 12:50" />
+                <input className="day-admin-input" value={flightForm.booking} onChange={(event) => setFlightForm((current) => ({ ...current, booking: event.target.value }))} placeholder="מספר הזמנה / הערה" />
+              </div>
+            </section>
+
+            <section className="day-admin-card">
+              <div className="day-admin-head">
+                <strong>מלון</strong>
+                <div className="day-admin-actions">
+                  <Button variant="glass" size="sm" type="button" onClick={saveHotel}>{selectedDay.hotels.length ? "שמור" : "הוסף"}</Button>
+                  <Button variant="ghost" size="sm" type="button" onClick={removeHotel} disabled={!selectedDay.hotels.length}>הסר</Button>
+                </div>
+              </div>
+              <div className="day-admin-fields">
+                <input className="day-admin-input" value={hotelForm.name} onChange={(event) => setHotelForm((current) => ({ ...current, name: event.target.value }))} placeholder="שם מלון" />
+                <input className="day-admin-input" value={hotelForm.location} onChange={(event) => setHotelForm((current) => ({ ...current, location: event.target.value }))} placeholder="מיקום" />
+                <input className="day-admin-input" value={hotelForm.address} onChange={(event) => setHotelForm((current) => ({ ...current, address: event.target.value }))} placeholder="כתובת" />
+                <div className="day-admin-inline">
+                  <input className="day-admin-input" value={hotelForm.phone} onChange={(event) => setHotelForm((current) => ({ ...current, phone: event.target.value }))} placeholder="טלפון" />
+                  <input className="day-admin-input" value={hotelForm.confirmation} onChange={(event) => setHotelForm((current) => ({ ...current, confirmation: event.target.value }))} placeholder="אישור" />
+                </div>
+                {!selectedDay.hotels.length ? <input className="day-admin-input" value={hotelForm.checkOut} onChange={(event) => setHotelForm((current) => ({ ...current, checkOut: event.target.value }))} placeholder="Check-out YYYY-MM-DD" /> : null}
+              </div>
+            </section>
+
+            <section className="day-admin-card">
+              <div className="day-admin-head">
+                <strong>רכב</strong>
+                <div className="day-admin-actions">
+                  <Button variant="glass" size="sm" type="button" onClick={saveCar}>{selectedDay.car ? "שמור" : "הוסף"}</Button>
+                  <Button variant="ghost" size="sm" type="button" onClick={removeCar} disabled={!selectedDay.car}>הסר</Button>
+                </div>
+              </div>
+              <div className="day-admin-fields">
+                <input className="day-admin-input" value={carForm.provider} onChange={(event) => setCarForm((current) => ({ ...current, provider: event.target.value }))} placeholder="חברה / סוג רכב" />
+                <input className="day-admin-input" value={carForm.pickup} onChange={(event) => setCarForm((current) => ({ ...current, pickup: event.target.value }))} placeholder="איסוף" />
+                <input className="day-admin-input" value={carForm.dropoff} onChange={(event) => setCarForm((current) => ({ ...current, dropoff: event.target.value }))} placeholder="החזרה" />
+                <input className="day-admin-input" value={carForm.confirmation} onChange={(event) => setCarForm((current) => ({ ...current, confirmation: event.target.value }))} placeholder="אישור" />
+                <textarea className="day-admin-textarea" value={carForm.notes} onChange={(event) => setCarForm((current) => ({ ...current, notes: event.target.value }))} placeholder="הערות רכב / חניה / דרייב" />
+              </div>
+            </section>
+
+            <section className="day-admin-card day-admin-card-wide">
+              <div className="day-admin-head">
+                <strong>תכנון כללי של היום</strong>
+                <div className="day-admin-actions">
+                  <Button variant="glass" size="sm" type="button" onClick={saveGeneralPlan}>שמור</Button>
+                  <Button variant="ghost" size="sm" type="button" onClick={() => { setPlanForm(""); applyDirectUpdates([{ type: "clear_day_summary", date: activeSelectedDate }]); }}>הסר</Button>
+                </div>
+              </div>
+              <textarea className="day-admin-textarea day-admin-plan" value={planForm} onChange={(event) => setPlanForm(event.target.value)} placeholder="כתוב כאן את התכנון הכללי של היום, דגשים, קצב, חלונות זמן והערות." />
+            </section>
+          </div>
+
           <div className="section-title" style={{ marginTop: "18px" }}>סוכן היום</div>
           <section className="day-agent-card">
             <div className="day-agent-head">
@@ -672,6 +903,14 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
                   <div className="logistics-body">לא נמצאה לינה משויכת ליום הזה. זו נקודת מעקב טובה לסגירה.</div>
                 </div>
               )}
+              {selectedDay.car ? (
+                <div className="logistics-item">
+                  <div className="logistics-title"><span>רכב</span><span>{selectedDay.car.provider || "מנוהל ידנית"}</span></div>
+                  <div className="logistics-body">
+                    {[selectedDay.car.pickup, selectedDay.car.dropoff, selectedDay.car.notes].filter(Boolean).join(" · ") || "קיים פריט רכב ליום הזה."}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </aside>
 
@@ -878,7 +1117,20 @@ function buildDayPlan(day: TripDay): DayPlanItem[] {
     focusDetails: `${hotel.name} ${hotel.address}`,
   }));
 
-  const items = [...flightItems, ...eventItems, ...hotelItems];
+  const carItems: DayPlanItem[] = day.car ? [{
+    id: `${day.date}-car-${day.car.provider || "car"}`,
+    title: day.car.provider || "רכב ליום",
+    details: [day.car.pickup, day.car.dropoff, day.car.notes].filter(Boolean).join(" · "),
+    icon: "רכב",
+    meta: day.car.confirmation ? `אישור ${day.car.confirmation}` : "סידור רכב ליום",
+    period: "logistics",
+    status: "מנוהל",
+    tone: "planned",
+    focusLabel: day.location.name,
+    focusDetails: `${day.car.provider || "רכב"} ${day.car.pickup || ""} ${day.car.dropoff || ""}`.trim(),
+  }] : [];
+
+  const items = [...flightItems, ...eventItems, ...hotelItems, ...carItems];
   if (items.length) return items;
 
   return [{
@@ -962,6 +1214,57 @@ function buildDayAgentWelcomeMessage(day: TripDay): Message {
     role: "assistant",
     body: `אני ממוקד רק ב-${formatDate(day.date)}. אפשר לבקש ממני לעדכן כותרת, סיכום, אירועים, טיסה או מלון של היום הזה בלבד.`,
   };
+}
+
+function buildCarForm(car: DayCar | null): DayCarForm {
+  return {
+    provider: car?.provider || "",
+    pickup: car?.pickup || "",
+    dropoff: car?.dropoff || "",
+    confirmation: car?.confirmation || "",
+    notes: car?.notes || "",
+  };
+}
+
+function buildLocationForm(day: TripDay | undefined, tripData: TripData): DayLocationForm {
+  if (!day) return { name: "", region: "", lat: "", lng: "" };
+  const overrideLocation = tripData.dayOverrides?.[day.date]?.location;
+  return {
+    name: overrideLocation?.name || day.location.name,
+    region: overrideLocation?.region || day.location.region,
+    lat: typeof overrideLocation?.lat === "number" ? String(overrideLocation.lat) : "",
+    lng: typeof overrideLocation?.lng === "number" ? String(overrideLocation.lng) : "",
+  };
+}
+
+function buildFlightForm(flight: Flight | undefined): DayFlightForm {
+  return {
+    label: flight?.label || "",
+    details: flight?.details || "",
+    booking: flight?.booking || "",
+  };
+}
+
+function buildHotelForm(hotel: Hotel | undefined, date: string): DayHotelForm {
+  return {
+    name: hotel?.name || "",
+    location: hotel?.location || "",
+    address: hotel?.address || "",
+    phone: hotel?.phone || "",
+    confirmation: hotel?.confirmation || "",
+    checkOut: hotel?.checkOut || shiftIsoDate(date, 1),
+  };
+}
+
+function shiftIsoDate(dateStr: string, delta: number) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const next = new Date(year, month - 1, day);
+  next.setDate(next.getDate() + delta);
+  return [
+    next.getFullYear(),
+    String(next.getMonth() + 1).padStart(2, "0"),
+    String(next.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
 function resolveFlightEditorTarget(day: TripDay, flights: Flight[]) {

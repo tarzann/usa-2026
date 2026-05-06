@@ -791,6 +791,76 @@ a {
   justify-self: start;
 }
 
+.day-management-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.day-admin-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+}
+
+.day-admin-card-wide {
+  grid-column: 1 / -1;
+}
+
+.day-admin-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.day-admin-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.day-admin-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.day-admin-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.day-admin-input,
+.day-admin-textarea {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(38, 77, 91, 0.12);
+  background: rgba(255, 255, 255, 0.84);
+  padding: 11px 13px;
+  color: var(--text);
+  font: inherit;
+}
+
+.day-admin-textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.day-admin-plan {
+  min-height: 120px;
+}
+
+.day-admin-input:focus,
+.day-admin-textarea:focus {
+  outline: none;
+  border-color: rgba(42, 166, 161, 0.42);
+  box-shadow: 0 0 0 4px rgba(42, 166, 161, 0.08);
+}
+
 .attachments-input {
   width: 100%;
   padding: 12px;
@@ -1240,5 +1310,10 @@ a {
 
   .assistant-launcher {
     justify-content: center;
+  }
+
+  .day-management-grid,
+  .day-admin-inline {
+    grid-template-columns: 1fr;
   }
 }
