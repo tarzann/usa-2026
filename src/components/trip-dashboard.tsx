@@ -179,11 +179,15 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
       setChatInput("");
 
       try {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 20000);
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt, selectedDay, tripData: currentTripData }),
+          signal: controller.signal,
         });
+        window.clearTimeout(timeoutId);
 
         const payload = (await response.json()) as { error?: string; reply?: string; mode?: string; updates?: TripUpdateAction[] };
         if (!response.ok) {
@@ -196,7 +200,11 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
 
         setChatHistory((current) => [...current, { role: "assistant", body: payload.reply || fallback }]);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "chat request failed";
+        const message = error instanceof Error
+          ? error.name === "AbortError"
+            ? "הבקשה נמשכה יותר מדי זמן והופסקה"
+            : error.message
+          : "chat request failed";
         setChatHistory((current) => [
           ...current,
           {

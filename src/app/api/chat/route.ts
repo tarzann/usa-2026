@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-import { buildAiAnswer, buildTripDays, sanitizeTripData, tripData, type TripData, type TripDay, type TripUpdateAction } from "@/lib/trip";
+import { buildAiAnswer, buildTripDays, formatDate, sanitizeTripData, tripData, type TripData, type TripDay, type TripUpdateAction } from "@/lib/trip";
 
 const MODEL = "gpt-5.4-mini";
 
@@ -17,6 +17,15 @@ export async function POST(request: Request) {
   const selectedDay = days.find((day) => day.date === body.selectedDay?.date) ?? days[0];
   const fallbackReply = buildAiAnswer(prompt, selectedDay, days, currentTripData);
   const fallbackUpdates = inferTripUpdates(prompt, selectedDay, currentTripData);
+
+  if (fallbackUpdates.length) {
+    return NextResponse.json({
+      reply: buildImmediateUpdateReply(fallbackUpdates),
+      updates: fallbackUpdates,
+      mode: "local-update",
+    });
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -373,4 +382,37 @@ function findMatchingFlightLabel(prompt: string, flights: string[]) {
 function findMatchingHotelName(prompt: string, hotels: string[]) {
   const normalizedPrompt = prompt.toLowerCase();
   return hotels.find((hotel) => normalizedPrompt.includes(hotel.toLowerCase()));
+}
+
+function buildImmediateUpdateReply(updates: TripUpdateAction[]) {
+  const lines = updates.map((update) => {
+    switch (update.type) {
+      case "add_todo":
+        return `הוספתי משימה חדשה: ${update.text}`;
+      case "complete_todo":
+        return `סימנתי את המשימה כבוצעה: ${update.text}`;
+      case "reopen_todo":
+        return `פתחתי מחדש את המשימה: ${update.text}`;
+      case "add_event":
+        return `הוספתי אירוע ל-${formatDate(update.date)}: ${update.label}`;
+      case "update_day_title":
+        return `עדכנתי את כותרת היום של ${formatDate(update.date)} ל-"${update.title}".`;
+      case "update_day_summary":
+        return `עדכנתי את סיכום היום של ${formatDate(update.date)}.`;
+      case "update_event":
+        return `עדכנתי את האירוע "${update.label}" ביום ${formatDate(update.date)}.`;
+      case "delete_event":
+        return `מחקתי את האירוע "${update.label}" מ-${formatDate(update.date)}.`;
+      case "move_event":
+        return `העברתי את האירוע "${update.label}" מ-${formatDate(update.fromDate)} ל-${formatDate(update.toDate)}.`;
+      case "update_flight":
+        return `עדכנתי את פרטי הטיסה "${update.label}" ליום ${formatDate(update.date)}.`;
+      case "update_hotel":
+        return `עדכנתי את פרטי הלינה "${update.name}".`;
+      default:
+        return "בוצע עדכון במסלול.";
+    }
+  });
+
+  return `${lines.join("\n")}\n\nהנתונים במסך עודכנו מקומית עכשיו. אם תרצה, אפשר להמשיך ולעדכן עוד פרטים לאותו יום.`;
 }
