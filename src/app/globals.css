@@ -489,6 +489,13 @@ a {
   margin-bottom: 6px;
 }
 
+.detail-location-note {
+  margin-top: 8px;
+  color: var(--brand-strong);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .day-intelligence-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -577,7 +577,13 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
           </div>
           <div className="timeline-list" ref={timelineListRef}>
             {days.map((day) => {
-              const preview = day.events[0] ? day.events[0].details.split("|")[0].trim() : day.summary;
+              const displayLocation = resolveDayDisplayLocation(day, currentTripData);
+              const hasLocationOverride = hasDayLocationOverride(day.date, currentTripData);
+              const preview = hasLocationOverride
+                ? `מיקום מעודכן: ${displayLocation.name}`
+                : day.events[0]
+                  ? day.events[0].details.split("|")[0].trim()
+                  : day.summary;
 
               return (
                 <button
@@ -599,7 +605,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
                       </span>
                     ) : null}
                     <div className="day-title">{day.title}</div>
-                    <div className="day-meta">{resolveDayDisplayLocation(day, currentTripData).name} · {day.travelMode}</div>
+                    <div className="day-meta">{displayLocation.name} · {day.travelMode}</div>
                     <div className="day-preview">{preview}</div>
                     <div className="day-flags">
                       {day.flights.length ? <span className="chip">טיסה</span> : null}
@@ -618,6 +624,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
               <div className="section-title">{selectedDay.dayName} · {formatDate(selectedDay.date)}</div>
               <h2>{selectedDay.title}</h2>
               <p>{selectedDay.summary}</p>
+              <div className="detail-location-note">📍 מיקום היום: {selectedDayLocation.name}{selectedDayLocation.region ? ` · ${selectedDayLocation.region}` : ""}</div>
             </div>
             <div className="detail-actions">
               <span className="chip">{selectedDay.segment ? selectedDay.segment.label : "יום פתוח"}</span>
@@ -1294,6 +1301,10 @@ function resolveDayDisplayLocation(day: TripDay, tripData: TripData) {
     lat: typeof overrideLocation.lat === "number" ? overrideLocation.lat : day.location.lat,
     lng: typeof overrideLocation.lng === "number" ? overrideLocation.lng : day.location.lng,
   };
+}
+
+function hasDayLocationOverride(date: string, tripData: TripData) {
+  return Boolean(tripData.dayOverrides?.[date]?.location?.name?.trim());
 }
 
 function buildFlightForm(flight: Flight | undefined): DayFlightForm {
