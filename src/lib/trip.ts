@@ -53,6 +53,12 @@ export type TripData = {
   todos: Todo[];
 };
 
+export type TripUpdateAction =
+  | { type: "add_todo"; text: string }
+  | { type: "complete_todo"; text: string }
+  | { type: "reopen_todo"; text: string }
+  | { type: "add_event"; date: string; label: string; details: string; emoji?: string; locked?: boolean };
+
 export type TripLocation = {
   name: string;
   lat: number;
@@ -97,12 +103,58 @@ const LOCATION_LOOKUP: Record<string, TripLocation> = {
 
 export const tripData = sanitizeTripData(tripDataJson as TripData);
 
-function sanitizeTripData(data: TripData): TripData {
+export function sanitizeTripData(data: TripData): TripData {
   return {
     ...data,
     events: data.events.filter((event) => isDateInTrip(event.date, data)),
     segments: data.segments.filter((segment) => segment.endDate >= data.startDate && segment.startDate <= data.endDate),
   };
+}
+
+export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
+  const nextData: TripData = {
+    ...data,
+    flights: [...data.flights],
+    segments: [...data.segments],
+    events: [...data.events],
+    hotels: [...data.hotels],
+    todos: data.todos.map((todo) => ({ ...todo })),
+  };
+
+  for (const update of updates) {
+    switch (update.type) {
+      case "add_todo": {
+        const text = update.text.trim();
+        if (!text) break;
+        if (nextData.todos.some((todo) => todo.text.trim().toLowerCase() === text.toLowerCase())) break;
+        nextData.todos.unshift({ text, done: false });
+        break;
+      }
+      case "complete_todo": {
+        const match = nextData.todos.find((todo) => todo.text.trim().toLowerCase() === update.text.trim().toLowerCase());
+        if (match) match.done = true;
+        break;
+      }
+      case "reopen_todo": {
+        const match = nextData.todos.find((todo) => todo.text.trim().toLowerCase() === update.text.trim().toLowerCase());
+        if (match) match.done = false;
+        break;
+      }
+      case "add_event": {
+        if (!update.label.trim() || !update.details.trim()) break;
+        nextData.events.push({
+          date: update.date,
+          emoji: update.emoji?.trim() || "📍",
+          label: update.label.trim(),
+          details: update.details.trim(),
+          locked: update.locked,
+        });
+        break;
+      }
+    }
+  }
+
+  return sanitizeTripData(nextData);
 }
 
 export function formatDate(dateStr: string) {

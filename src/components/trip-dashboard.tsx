@@ -6,12 +6,16 @@ import { type DayAttachment } from "@/lib/attachments";
 import type { FocusedMapLocation } from "@/components/real-trip-map";
 import { Button } from "@/components/ui/button";
 import {
+  applyTripUpdates,
   buildAiAnswer,
+  buildTripDays,
   countLockedItems,
   countTransportDays,
   formatDate,
   getProgressRatio,
-  tripData,
+  sanitizeTripData,
+  type TripData,
+  type TripUpdateAction,
   type TripDay,
 } from "@/lib/trip";
 
@@ -22,6 +26,7 @@ type Message = {
 
 type TripDashboardProps = {
   days: TripDay[];
+  initialTripData: TripData;
   googleMapsApiKey: string;
 };
 
@@ -71,10 +76,25 @@ const quickPrompts = [
   { title: "תן המלצה ליום הזה", body: "מה כדאי לשפר ביום הנבחר?" },
 ];
 
-export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
+const LOCAL_STORAGE_KEY = "trip-planner-data-v1";
+
+export function TripDashboard({ days: initialDays, initialTripData, googleMapsApiKey }: TripDashboardProps) {
   const timelineListRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [selectedDate, setSelectedDate] = useState(days[0]?.date ?? "");
+  const [currentTripData, setCurrentTripData] = useState<TripData>(() => {
+    if (typeof window === "undefined") return initialTripData;
+
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) return initialTripData;
+
+    try {
+      return sanitizeTripData(JSON.parse(raw) as TripData);
+    } catch {
+      window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+      return initialTripData;
+    }
+  });
+  const [selectedDate, setSelectedDate] = useState(initialDays[0]?.date ?? "");
   const [chatInput, setChatInput] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [attachments, setAttachments] = useState<DayAttachment[]>([]);
@@ -84,17 +104,22 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
   const [chatHistory, setChatHistory] = useState<Message[]>([
     {
       role: "assistant",
-      body: `אני רואה מסלול של ${days.length} ימים. בחר יום מהטיימליין, או שאל אותי מה חסר לסגור, איפה יש עומס, ואיך ללטש את התכנון.`,
+      body: `אני רואה מסלול של ${initialDays.length} ימים. בחר יום מהטיימליין, או שאל אותי מה חסר לסגור, איפה יש עומס, ואיך ללטש את התכנון.`,
     },
   ]);
   const [isPending, startTransition] = useTransition();
-
-  const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
+  const days = buildTripDays(currentTripData);
+  const activeSelectedDate = days.some((day) => day.date === selectedDate) ? selectedDate : (days[0]?.date ?? "");
+  const selectedDay = days.find((day) => day.date === activeSelectedDate) ?? days[0];
   const nextDay = days[selectedDay.index + 1];
-  const progress = Math.round(getProgressRatio(tripData) * 100);
+  const progress = Math.round(getProgressRatio(currentTripData) * 100);
   const dayPlan = buildDayPlan(selectedDay);
   const dayStats = getDayStats(selectedDay);
   const smartBrief = buildSmartBrief(selectedDay, nextDay, attachments.length);
+
+  useEffect(() => {
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentTripData));
+  }, [currentTripData]);
 
   function selectDay(date: string) {
     setAttachmentsLoading(true);
@@ -107,19 +132,19 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
     const container = timelineListRef.current;
     if (!container) return;
 
-    const selectedCard = container.querySelector<HTMLButtonElement>(`[data-date="${selectedDate}"]`);
+    const selectedCard = container.querySelector<HTMLButtonElement>(`[data-date="${activeSelectedDate}"]`);
     if (!selectedCard) return;
 
     container.scrollTo({
       top: selectedCard.offsetTop - container.offsetTop,
       behavior: "smooth",
     });
-  }, [selectedDate]);
+  }, [activeSelectedDate]);
 
   useEffect(() => {
     let active = true;
 
-    fetch(`/api/attachments?dayDate=${encodeURIComponent(selectedDate)}`)
+    fetch(`/api/attachments?dayDate=${encodeURIComponent(activeSelectedDate)}`)
       .then(async (response) => {
         const payload = (await response.json()) as { attachments?: DayAttachment[]; error?: string };
         if (!response.ok) throw new Error(payload.error || "Failed to load attachments");
@@ -142,13 +167,13 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
     return () => {
       active = false;
     };
-  }, [selectedDate]);
+  }, [activeSelectedDate]);
 
   function submitPrompt(prompt: string) {
     if (!prompt.trim()) return;
 
     startTransition(async () => {
-      const fallback = buildAiAnswer(prompt, selectedDay, days, tripData);
+      const fallback = buildAiAnswer(prompt, selectedDay, days, currentTripData);
 
       setChatHistory((current) => [...current, { role: "user", body: prompt }]);
       setChatInput("");
@@ -157,12 +182,16 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, selectedDay }),
+          body: JSON.stringify({ prompt, selectedDay, tripData: currentTripData }),
         });
 
-        const payload = (await response.json()) as { error?: string; reply?: string; mode?: string };
+        const payload = (await response.json()) as { error?: string; reply?: string; mode?: string; updates?: TripUpdateAction[] };
         if (!response.ok) {
           throw new Error(payload.error || "chat request failed");
+        }
+
+        if (payload.updates?.length) {
+          setCurrentTripData((current) => applyTripUpdates(current, payload.updates || []));
         }
 
         setChatHistory((current) => [...current, { role: "assistant", body: payload.reply || fallback }]);
@@ -185,7 +214,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
 
     try {
       const formData = new FormData();
-      formData.append("dayDate", selectedDate);
+      formData.append("dayDate", activeSelectedDate);
       files.forEach((file) => formData.append("files", file));
 
       const response = await fetch("/api/attachments", {
@@ -196,7 +225,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
       const payload = (await response.json()) as { attachments?: DayAttachment[]; error?: string };
       if (!response.ok) throw new Error(payload.error || "Upload failed");
 
-      const listResponse = await fetch(`/api/attachments?dayDate=${encodeURIComponent(selectedDate)}`);
+      const listResponse = await fetch(`/api/attachments?dayDate=${encodeURIComponent(activeSelectedDate)}`);
       const listPayload = (await listResponse.json()) as { attachments?: DayAttachment[]; error?: string };
       if (!listResponse.ok) throw new Error(listPayload.error || "Failed to refresh attachments");
 
@@ -219,7 +248,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(payload.error || "Delete failed");
 
-      const listResponse = await fetch(`/api/attachments?dayDate=${encodeURIComponent(selectedDate)}`);
+      const listResponse = await fetch(`/api/attachments?dayDate=${encodeURIComponent(activeSelectedDate)}`);
       const listPayload = (await listResponse.json()) as { attachments?: DayAttachment[]; error?: string };
       if (!listResponse.ok) throw new Error(listPayload.error || "Failed to refresh attachments");
 
@@ -305,7 +334,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
                   key={day.date}
                   type="button"
                   data-date={day.date}
-                  className={`day-card ${day.date === selectedDate ? "active" : ""}`}
+                  className={`day-card ${day.date === activeSelectedDate ? "active" : ""}`}
                   onClick={() => selectDay(day.date)}
                 >
                   <div className="day-date">
@@ -342,12 +371,12 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
               </div>
               <span className="badge">{selectedDay.location.region}</span>
             </div>
-            <RealTripMap
-              apiKey={googleMapsApiKey}
-              days={days}
-              selectedDate={selectedDate}
-              focusedLocation={focusedLocation}
-            />
+              <RealTripMap
+                apiKey={googleMapsApiKey}
+                days={days}
+                selectedDate={activeSelectedDate}
+                focusedLocation={focusedLocation}
+              />
             <div className="map-note">
               <div className="mini-stat">
                 <div className="mini-stat-label">היום הנבחר</div>
@@ -359,7 +388,7 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
               </div>
               <div className="mini-stat">
                 <div className="mini-stat-label">פריטים נעולים</div>
-                <div className="mini-stat-value">{countLockedItems(tripData)}</div>
+                <div className="mini-stat-value">{countLockedItems(currentTripData)}</div>
               </div>
             </div>
           </section>
@@ -530,10 +559,10 @@ export function TripDashboard({ days, googleMapsApiKey }: TripDashboardProps) {
                 <h3>מה פתוח לסגירה</h3>
                 <p>המערכת מאתרת משימות רלוונטיות ליום הנבחר, ובאין התאמה מציגה את המשימות הדחופות הכלליות.</p>
               </div>
-              <span className="badge">{(selectedDay.pendingTodos.length || tripData.todos.filter((todo) => !todo.done).slice(0, 4).length)} פריטים</span>
+              <span className="badge">{(selectedDay.pendingTodos.length || currentTripData.todos.filter((todo) => !todo.done).slice(0, 4).length)} פריטים</span>
             </div>
             <div className="task-list">
-              {(selectedDay.pendingTodos.length ? selectedDay.pendingTodos : tripData.todos.filter((todo) => !todo.done).slice(0, 4)).map((task) => (
+              {(selectedDay.pendingTodos.length ? selectedDay.pendingTodos : currentTripData.todos.filter((todo) => !todo.done).slice(0, 4)).map((task) => (
                 <div key={task.text} className={`task-item ${task.done ? "done" : ""}`}>
                   <span className="task-status" />
                   <div className="task-copy">{task.text}</div>
