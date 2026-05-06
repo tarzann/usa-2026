@@ -180,6 +180,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const nextDay = days[selectedDay.index + 1];
   const selectedDayLocation = resolveDayDisplayLocation(selectedDay, currentTripData);
   const nextDayLocation = nextDay ? resolveDayDisplayLocation(nextDay, currentTripData) : null;
+  const selectedDayTitle = resolveDayDisplayTitle(selectedDay, currentTripData);
   const progress = Math.round(getProgressRatio(currentTripData) * 100);
   const dayPlan = buildDayPlan(selectedDay);
   const dayStats = getDayStats(selectedDay);
@@ -578,6 +579,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
           <div className="timeline-list" ref={timelineListRef}>
             {days.map((day) => {
               const displayLocation = resolveDayDisplayLocation(day, currentTripData);
+              const displayTitle = resolveDayDisplayTitle(day, currentTripData);
               const hasLocationOverride = hasDayLocationOverride(day.date, currentTripData);
               const preview = hasLocationOverride
                 ? `מיקום מעודכן: ${displayLocation.name}`
@@ -604,7 +606,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
                         {day.segment.label}
                       </span>
                     ) : null}
-                    <div className="day-title">{day.title}</div>
+                    <div className="day-title">{displayTitle}</div>
                     <div className="day-meta">{displayLocation.name} · {day.travelMode}</div>
                     <div className="day-preview">{preview}</div>
                     <div className="day-flags">
@@ -622,7 +624,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
           <div className="detail-header">
             <div>
               <div className="section-title">{selectedDay.dayName} · {formatDate(selectedDay.date)}</div>
-              <h2>{selectedDay.title}</h2>
+              <h2>{selectedDayTitle}</h2>
               <p>{selectedDay.summary}</p>
               <div className="detail-location-note">📍 מיקום היום: {selectedDayLocation.name}{selectedDayLocation.region ? ` · ${selectedDayLocation.region}` : ""}</div>
             </div>
@@ -1301,6 +1303,20 @@ function resolveDayDisplayLocation(day: TripDay, tripData: TripData) {
     lat: typeof overrideLocation.lat === "number" ? overrideLocation.lat : day.location.lat,
     lng: typeof overrideLocation.lng === "number" ? overrideLocation.lng : day.location.lng,
   };
+}
+
+function resolveDayDisplayTitle(day: TripDay, tripData: TripData) {
+  const manualTitle = tripData.dayOverrides?.[day.date]?.title?.trim();
+  if (manualTitle) return manualTitle;
+
+  const overrideLocation = tripData.dayOverrides?.[day.date]?.location?.name?.trim();
+  if (!overrideLocation) return day.title;
+
+  if (day.flights.length) {
+    return `${day.title} · ${overrideLocation}`;
+  }
+
+  return `יום ב${overrideLocation}`;
 }
 
 function hasDayLocationOverride(date: string, tripData: TripData) {
