@@ -72,7 +72,7 @@ export function inferTripUpdates(prompt: string, selectedDay: TripDay, currentTr
       : [];
   }
 
-  if ((normalized.includes("עדכן") || normalized.includes("שנה") || normalized.includes("העבר")) && (normalized.includes("טיסה") || normalized.includes("flight"))) {
+  if ((normalized.includes("עדכן") || normalized.includes("שנה") || normalized.includes("העבר")) && mentionsFlight(normalized)) {
     const flight = resolveFlightTarget(text, selectedDay, currentTripData, quoted);
     const details = extractUpdatePayload(text);
     const nextDate = extractTargetFlightDate(text, flight?.date, tripYear);
@@ -251,6 +251,10 @@ function extractUpdatePayload(text: string) {
   if (dashText) return dashText;
 
   return "";
+}
+
+function mentionsFlight(normalizedText: string) {
+  return normalizedText.includes("טיס") || normalizedText.includes("flight");
 }
 
 const HEBREW_MONTHS: Record<string, number> = {
