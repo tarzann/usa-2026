@@ -825,6 +825,49 @@ a {
   white-space: nowrap;
 }
 
+.inline-tool-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+}
+
+.inline-tool-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.inline-tool-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.inline-tool-select,
+.inline-tool-textarea {
+  width: 100%;
+  border: 1px solid rgba(38, 77, 91, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+}
+
+.inline-tool-select {
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.inline-tool-textarea {
+  min-height: 88px;
+  resize: vertical;
+  padding: 12px;
+}
+
 .prompt-btn {
   justify-content: start;
   height: auto;

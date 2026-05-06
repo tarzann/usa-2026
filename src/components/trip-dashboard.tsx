@@ -15,6 +15,7 @@ import {
   formatDate,
   getProgressRatio,
   sanitizeTripData,
+  type Flight,
   type TripData,
   type TripUpdateAction,
   type TripDay,
@@ -59,6 +60,11 @@ type IntentAction = {
   id: string;
   label: string;
   prompt: string;
+};
+
+type FlightEditorState = {
+  flightLabel: string;
+  details: string;
 };
 
 const dayPlanPeriods: Array<{ id: DayPlanPeriod; title: string; helper: string }> = [
@@ -108,6 +114,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const [attachmentsLoading, setAttachmentsLoading] = useState(true);
   const [attachmentsError, setAttachmentsError] = useState("");
   const [focusedLocation, setFocusedLocation] = useState<FocusedMapLocation | null>(null);
+  const [flightEditor, setFlightEditor] = useState<FlightEditorState | null>(null);
   const [chatHistory, setChatHistory] = useState<Message[]>([
     {
       role: "assistant",
@@ -123,7 +130,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const dayPlan = buildDayPlan(selectedDay);
   const dayStats = getDayStats(selectedDay);
   const smartBrief = buildSmartBrief(selectedDay, nextDay, attachments.length);
-  const intentActions = buildIntentActions(selectedDay);
+  const intentActions = buildIntentActions(selectedDay, currentTripData.flights.length > 0);
 
   useEffect(() => {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentTripData));
@@ -230,6 +237,39 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
         ]);
       }
     });
+  }
+
+  function applyDirectUpdates(updates: TripUpdateAction[]) {
+    if (!updates.length) return;
+
+    setCurrentTripData((current) => applyTripUpdates(current, updates));
+    setChatHistory((current) => [...current, { role: "assistant", body: buildImmediateUpdateReply(updates) }]);
+  }
+
+  function openFlightEditor() {
+    const flight = resolveFlightEditorTarget(selectedDay, currentTripData.flights);
+    setFlightEditor({
+      flightLabel: flight?.label || "",
+      details: flight?.details || "",
+    });
+  }
+
+  function submitFlightEditor(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!flightEditor?.flightLabel.trim() || !flightEditor.details.trim()) return;
+
+    const flight = currentTripData.flights.find((item) => item.label === flightEditor.flightLabel);
+    if (!flight) return;
+
+    applyDirectUpdates([
+      {
+        type: "update_flight",
+        date: flight.date,
+        label: flight.label,
+        details: flightEditor.details.trim(),
+      },
+    ]);
+    setFlightEditor(null);
   }
 
   async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
@@ -631,12 +671,58 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
                   variant="glass"
                   size="sm"
                   className="intent-chip"
-                  onClick={() => setChatInput(action.prompt)}
+                  onClick={() => {
+                    if (action.id === "flight-editor") {
+                      openFlightEditor();
+                      return;
+                    }
+                    setChatInput(action.prompt);
+                  }}
                 >
                   {action.label}
                 </Button>
               ))}
             </div>
+            {flightEditor ? (
+              <form className="inline-tool-card" onSubmit={submitFlightEditor}>
+                <div className="inline-tool-head">
+                  <strong>עדכון טיסה</strong>
+                  <Button variant="ghost" size="sm" onClick={() => setFlightEditor(null)} type="button">
+                    סגור
+                  </Button>
+                </div>
+                <label className="inline-tool-field">
+                  <span>איזו טיסה?</span>
+                  <select
+                    className="inline-tool-select"
+                    value={flightEditor.flightLabel}
+                    onChange={(event) => {
+                      const selectedFlight = currentTripData.flights.find((flight) => flight.label === event.target.value);
+                      setFlightEditor({
+                        flightLabel: event.target.value,
+                        details: selectedFlight?.details || "",
+                      });
+                    }}
+                  >
+                    {currentTripData.flights.map((flight) => (
+                      <option key={`${flight.date}-${flight.label}`} value={flight.label}>
+                        {flight.label} · {formatDate(flight.date)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="inline-tool-field">
+                  <span>פרטי טיסה</span>
+                  <textarea
+                    className="inline-tool-textarea"
+                    value={flightEditor.details}
+                    onChange={(event) => setFlightEditor((current) => current ? { ...current, details: event.target.value } : current)}
+                    placeholder="TLV → ZRH → JFK | המראה 05:30 | נחיתה 13:10"
+                  />
+                </label>
+                <Button variant="primary" type="submit">עדכן טיסה</Button>
+              </form>
+            ) : null}
             <div className="quick-prompts">
               {quickPrompts.map((prompt) => (
                 <Button key={prompt.title} variant="glass" size="sm" className="prompt-btn" onClick={() => setChatInput(prompt.body)}>
@@ -769,8 +855,7 @@ function getDayStats(day: TripDay) {
   };
 }
 
-function buildIntentActions(day: TripDay): IntentAction[] {
-  const firstFlight = day.flights[0];
+function buildIntentActions(day: TripDay, hasFlights: boolean): IntentAction[] {
   const firstHotel = day.hotels[0];
   const firstEvent = day.events[0];
 
@@ -786,11 +871,9 @@ function buildIntentActions(day: TripDay): IntentAction[] {
       prompt: `הוסף אירוע: `,
     },
     {
-      id: "flight",
+      id: "flight-editor",
       label: "עדכון טיסה",
-      prompt: firstFlight
-        ? `עדכן את הטיסה "${firstFlight.label}": ${firstFlight.details}`
-        : `עדכן את הטיסה של היום האחרון: `,
+      prompt: hasFlights ? "" : `עדכן את הטיסה של היום האחרון: `,
     },
     {
       id: "hotel",
@@ -812,6 +895,11 @@ function buildIntentActions(day: TripDay): IntentAction[] {
       prompt: `מחק את היום הזה`,
     },
   ];
+}
+
+function resolveFlightEditorTarget(day: TripDay, flights: Flight[]) {
+  if (day.flights.length) return day.flights[0];
+  return flights[flights.length - 1] ?? flights[0] ?? null;
 }
 
 function buildSmartBrief(day: TripDay, nextDay: TripDay | undefined, attachmentsCount: number): SmartBriefItem[] {
