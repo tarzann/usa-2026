@@ -601,11 +601,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
                     <div className="dow">{day.dayName.replace("יום ", "")}</div>
                   </div>
                   <div className="day-summary">
-                    {day.segment ? (
-                      <span className="segment-pill" style={{ background: day.segment.bg, color: day.segment.text }}>
-                        {day.segment.label}
-                      </span>
-                    ) : null}
+                    <span className="segment-pill">📍 {displayLocation.name}</span>
                     <div className="day-title">{displayTitle}</div>
                     <div className="day-meta">{displayLocation.name} · {day.travelMode}</div>
                     <div className="day-preview">{preview}</div>
@@ -629,8 +625,8 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
               <div className="detail-location-note">📍 מיקום היום: {selectedDayLocation.name}{selectedDayLocation.region ? ` · ${selectedDayLocation.region}` : ""}</div>
             </div>
             <div className="detail-actions">
-              <span className="chip">{selectedDay.segment ? selectedDay.segment.label : "יום פתוח"}</span>
-              <span className="chip">{selectedDayLocation.name}</span>
+              <span className="chip">📍 {selectedDayLocation.name}</span>
+              <span className="chip">{selectedDayLocation.region}</span>
               <span className="chip">{selectedDay.travelMode}</span>
             </div>
           </div>
