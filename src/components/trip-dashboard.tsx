@@ -174,6 +174,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
 
     startTransition(async () => {
       const fallback = buildAiAnswer(prompt, selectedDay, days, currentTripData);
+      const historyForRequest = [...chatHistory.slice(-8), { role: "user" as const, body: prompt }];
 
       setChatHistory((current) => [...current, { role: "user", body: prompt }]);
       setChatInput("");
@@ -184,7 +185,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, selectedDay, tripData: currentTripData }),
+          body: JSON.stringify({ prompt, selectedDay, tripData: currentTripData, history: historyForRequest }),
           signal: controller.signal,
         });
         window.clearTimeout(timeoutId);

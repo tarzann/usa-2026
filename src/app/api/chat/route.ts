@@ -3,9 +3,10 @@ import { NextResponse } from "next/server";
 import { buildAiAnswer, buildTripDays, formatDate, sanitizeTripData, tripData, type TripData, type TripDay, type TripUpdateAction } from "@/lib/trip";
 
 const MODEL = "gpt-5.4-mini";
+type ChatHistoryItem = { role: "user" | "assistant"; body: string };
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as { prompt?: string; selectedDay?: TripDay; tripData?: TripData };
+  const body = (await request.json()) as { prompt?: string; selectedDay?: TripDay; tripData?: TripData; history?: ChatHistoryItem[] };
   const prompt = body.prompt?.trim();
 
   if (!prompt) {
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   const selectedDay = days.find((day) => day.date === body.selectedDay?.date) ?? days[0];
   const fallbackReply = buildAiAnswer(prompt, selectedDay, days, currentTripData);
   const fallbackUpdates = inferTripUpdates(prompt, selectedDay, currentTripData);
+  const recentHistory = (body.history || []).slice(-8);
 
   if (fallbackUpdates.length) {
     return NextResponse.json({
@@ -98,6 +100,9 @@ export async function POST(request: Request) {
         "Use only the provided trip data as the source of truth. If information is missing, say so clearly and suggest the best next action.",
         "Be practical, concise, and product-minded. Focus on itinerary quality, logistics, booking gaps, timing, and smart recommendations.",
         "When useful, structure the answer into short sections or bullets, but keep it easy to scan in chat.",
+        "Prefer action over discussion. If the user asked to update something and you have enough context, do it.",
+        "Do not end every reply with a follow-up question. Ask a question only if you are genuinely blocked.",
+        "Short confirmations like כן, אוקיי, תמשיך, or similar should be interpreted using the recent conversation context.",
         "When the user explicitly asks to change the trip, return matching updates in the updates array.",
         "Supported updates are: add_todo, complete_todo, reopen_todo, add_event, update_day_title, update_day_summary, update_event, delete_event, move_event, update_flight, update_hotel.",
         "Only emit updates when the user clearly asked to modify data. Otherwise return an empty updates array.",
@@ -126,6 +131,7 @@ export async function POST(request: Request) {
                     selectedDay,
                     nextDay,
                     openTodos: currentTripData.todos.filter((todo) => !todo.done).slice(0, 8),
+                    recentHistory,
                   },
                   null,
                   2,
