@@ -289,11 +289,6 @@ a {
   padding: 20px;
 }
 
-.timeline-card,
-.map-card {
-  height: 600px;
-}
-
 .map-card-wide {
   height: auto;
 }
@@ -301,6 +296,12 @@ a {
 .timeline-card {
   display: flex;
   flex-direction: column;
+  min-height: 600px;
+  height: 100%;
+}
+
+.map-card {
+  min-height: 600px;
 }
 
 .vision-card {
@@ -349,7 +350,7 @@ a {
 
 .timeline-list {
   flex: 1;
-  max-height: 490px;
+  min-height: 490px;
   overflow: auto;
 }
 
