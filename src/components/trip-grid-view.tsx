@@ -1003,7 +1003,9 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <span className="grid-day-date">{formatGridDayLabel(day.date, day.dayName)}</span>
               <span className="grid-day-chip" style={locationTagStyles[day.location.name]}>📍 {day.location.name}</span>
             </div>
-            <span className="grid-day-kicker">{day.travelMode}</span>
+            {day.travelMode !== "יום יעד" ? (
+              <span className="grid-day-kicker">{day.travelMode}</span>
+            ) : null}
             <div className="grid-day-title">{day.title}</div>
             {day.summary ? <div className="grid-day-summary">{day.summary}</div> : null}
             <div className="grid-day-footer">
@@ -1032,7 +1034,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             <div className="day-modal-meta">
               <span className="chip" style={locationTagStyles[activeDay.location.name]}>📍 {activeDay.location.name}</span>
               <span className="chip">{activeDay.location.region}</span>
-              <span className="chip">{activeDay.travelMode}</span>
+              {activeDay.travelMode !== "יום יעד" ? <span className="chip">{activeDay.travelMode}</span> : null}
             </div>
 
             <section className="day-gallery">
@@ -1044,7 +1046,6 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             </section>
 
             <section className="day-modal-quick-links">
-              <Button variant="glass" size="sm" onClick={() => openTripManager("hero")}>תמונות יעד</Button>
               <Button variant="glass" size="sm" onClick={() => openTripManager("flight")}>ניהול טיסות</Button>
               <Button variant="glass" size="sm" onClick={() => openTripManager("hotel")}>ניהול מלונות</Button>
               <Button variant="glass" size="sm" onClick={() => openTripManager("car")}>ניהול רכבים</Button>
@@ -1257,7 +1258,6 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("flight")}>✈️ טיסות</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("car")}>🚗 רכב</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("hotel")}>🏨 מלונות</button>
-            <button type="button" className="grid-fab-option" onClick={() => openTripManager("hero")}>🖼️ תמונות יעד</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("resource")}>🔗 קבצים וקישורים</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("todo")}>✅ משימות פתוחות לסגירה</button>
           </div>
