@@ -5,6 +5,15 @@ export type Flight = {
   label: string;
   details: string;
   booking?: string;
+  confirmation?: string;
+  airline?: string;
+  from?: string;
+  to?: string;
+  stops?: string[];
+  departureDate?: string;
+  departureTime?: string;
+  arrivalDate?: string;
+  arrivalTime?: string;
 };
 
 export type Segment = {
@@ -49,6 +58,8 @@ export type DayLocationOverride = {
 };
 
 export type DayCar = {
+  startDate?: string;
+  endDate?: string;
   provider?: string;
   pickup?: string;
   dropoff?: string;
@@ -73,6 +84,7 @@ export type TripData = {
   segments: Segment[];
   events: EventItem[];
   hotels: Hotel[];
+  cars?: DayCar[];
   todos: Todo[];
   dayOverrides?: Record<string, DayOverride>;
   skippedDates?: string[];
@@ -88,15 +100,47 @@ export type TripUpdateAction =
   | { type: "update_event"; date: string; label: string; nextLabel?: string; details?: string; emoji?: string; locked?: boolean }
   | { type: "delete_event"; date: string; label: string }
   | { type: "move_event"; fromDate: string; toDate: string; label: string }
-  | { type: "add_flight"; date: string; label: string; details: string; booking?: string }
-  | { type: "update_flight"; date: string; label: string; nextDate?: string; nextLabel?: string; details?: string; booking?: string }
+  | {
+      type: "add_flight";
+      date: string;
+      label: string;
+      details: string;
+      booking?: string;
+      confirmation?: string;
+      airline?: string;
+      from?: string;
+      to?: string;
+      stops?: string[];
+      departureDate?: string;
+      departureTime?: string;
+      arrivalDate?: string;
+      arrivalTime?: string;
+    }
+  | {
+      type: "update_flight";
+      date: string;
+      label: string;
+      nextDate?: string;
+      nextLabel?: string;
+      details?: string;
+      booking?: string;
+      confirmation?: string;
+      airline?: string;
+      from?: string;
+      to?: string;
+      stops?: string[];
+      departureDate?: string;
+      departureTime?: string;
+      arrivalDate?: string;
+      arrivalTime?: string;
+    }
   | { type: "delete_flight"; date: string; label: string }
   | { type: "add_hotel"; name: string; location: string; checkIn: string; checkOut: string; address: string; phone?: string; confirmation?: string }
   | { type: "update_hotel"; name: string; nextName?: string; address?: string; phone?: string; confirmation?: string; location?: string }
   | { type: "delete_hotel"; name: string; checkIn: string }
   | { type: "update_location"; date: string; name: string; region?: string; lat?: number; lng?: number }
   | { type: "clear_location"; date: string }
-  | { type: "update_car"; date: string; provider?: string; pickup?: string; dropoff?: string; confirmation?: string; notes?: string }
+  | { type: "update_car"; date: string; startDate?: string; endDate?: string; provider?: string; pickup?: string; dropoff?: string; confirmation?: string; notes?: string }
   | { type: "clear_car"; date: string }
   | { type: "clear_day_summary"; date: string }
   | { type: "swap_day_content"; fromDate: string; toDate: string }
@@ -153,6 +197,11 @@ export function sanitizeTripData(data: TripData): TripData {
     ...data,
     events: data.events.filter((event) => isDateInTrip(event.date, data)),
     segments: data.segments.filter((segment) => segment.endDate >= data.startDate && segment.startDate <= data.endDate),
+    cars: (data.cars ?? []).filter((car) => {
+      const startDate = car.startDate ?? data.startDate;
+      const endDate = car.endDate ?? startDate;
+      return endDate >= data.startDate && startDate <= data.endDate;
+    }),
     dayOverrides: data.dayOverrides ?? {},
     skippedDates: (data.skippedDates ?? []).filter((date) => isDateInTrip(date, data)),
   };
@@ -165,6 +214,7 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
     segments: [...data.segments],
     events: [...data.events],
     hotels: [...data.hotels],
+    cars: (data.cars ?? []).map((car) => ({ ...car })),
     todos: data.todos.map((todo) => ({ ...todo })),
     dayOverrides: { ...(data.dayOverrides ?? {}) },
     skippedDates: [...(data.skippedDates ?? [])],
@@ -297,6 +347,15 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
           label: update.label.trim(),
           details: update.details.trim(),
           booking: update.booking?.trim() || undefined,
+          confirmation: update.confirmation?.trim() || update.booking?.trim() || undefined,
+          airline: update.airline?.trim() || undefined,
+          from: update.from?.trim() || undefined,
+          to: update.to?.trim() || undefined,
+          stops: update.stops?.map((stop) => stop.trim()).filter(Boolean) || undefined,
+          departureDate: update.departureDate?.trim() || undefined,
+          departureTime: update.departureTime?.trim() || undefined,
+          arrivalDate: update.arrivalDate?.trim() || undefined,
+          arrivalTime: update.arrivalTime?.trim() || undefined,
         });
         break;
       }
@@ -315,6 +374,15 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
         if (update.nextLabel?.trim()) match.label = update.nextLabel.trim();
         if (update.details?.trim()) match.details = update.details.trim();
         if (update.booking?.trim()) match.booking = update.booking.trim();
+        if (update.confirmation?.trim()) match.confirmation = update.confirmation.trim();
+        if (update.airline !== undefined) match.airline = update.airline?.trim() || undefined;
+        if (update.from !== undefined) match.from = update.from?.trim() || undefined;
+        if (update.to !== undefined) match.to = update.to?.trim() || undefined;
+        if (update.stops !== undefined) match.stops = update.stops.map((stop) => stop.trim()).filter(Boolean);
+        if (update.departureDate !== undefined) match.departureDate = update.departureDate?.trim() || undefined;
+        if (update.departureTime !== undefined) match.departureTime = update.departureTime?.trim() || undefined;
+        if (update.arrivalDate !== undefined) match.arrivalDate = update.arrivalDate?.trim() || undefined;
+        if (update.arrivalTime !== undefined) match.arrivalTime = update.arrivalTime?.trim() || undefined;
         break;
       }
       case "delete_flight": {
@@ -376,20 +444,33 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
         break;
       }
       case "update_car": {
-        dayOverrides[update.date] = {
-          ...(dayOverrides[update.date] ?? {}),
-          car: {
-            provider: update.provider?.trim() || undefined,
-            pickup: update.pickup?.trim() || undefined,
-            dropoff: update.dropoff?.trim() || undefined,
-            confirmation: update.confirmation?.trim() || undefined,
-            notes: update.notes?.trim() || undefined,
-          },
-          travelMode: "רכב / דרך",
+        const startDate = update.startDate?.trim() || update.date;
+        const endDate = update.endDate?.trim() || startDate;
+        const cars = nextData.cars ?? [];
+        nextData.cars = cars;
+        const matchIndex = cars.findIndex((car) =>
+          (update.confirmation?.trim() && car.confirmation?.trim() === update.confirmation.trim()) ||
+          ((car.startDate ?? update.date) <= update.date && (car.endDate ?? car.startDate ?? update.date) >= update.date),
+        );
+        const nextCar: DayCar = {
+          startDate,
+          endDate,
+          provider: update.provider?.trim() || undefined,
+          pickup: update.pickup?.trim() || undefined,
+          dropoff: update.dropoff?.trim() || undefined,
+          confirmation: update.confirmation?.trim() || undefined,
+          notes: update.notes?.trim() || undefined,
         };
+        if (matchIndex >= 0) cars[matchIndex] = nextCar;
+        else cars.push(nextCar);
         break;
       }
       case "clear_car": {
+        nextData.cars = (nextData.cars ?? []).filter((car) => {
+          const startDate = car.startDate ?? update.date;
+          const endDate = car.endDate ?? startDate;
+          return !(startDate <= update.date && endDate >= update.date);
+        });
         dayOverrides[update.date] = {
           ...(dayOverrides[update.date] ?? {}),
           car: null,
@@ -467,6 +548,12 @@ function getHotelsForDate(dateStr: string, data: TripData) {
 }
 
 function getCarForDate(dateStr: string, data: TripData) {
+  const rangedCar = (data.cars ?? []).find((car) => {
+    const startDate = car.startDate ?? dateStr;
+    const endDate = car.endDate ?? startDate;
+    return startDate <= dateStr && endDate >= dateStr;
+  });
+  if (rangedCar) return rangedCar;
   return data.dayOverrides?.[dateStr]?.car ?? null;
 }
 
@@ -500,11 +587,9 @@ function buildDayTitle(dateStr: string, flights: Flight[], events: EventItem[], 
   return "יום חופשי לתכנון";
 }
 
-function buildDaySummary(flights: Flight[], events: EventItem[], hotels: Hotel[]) {
-  if (flights.length > 0) return flights[0].details.replace(/\s*\|\s*/g, " · ");
+function buildDaySummary(_flights: Flight[], events: EventItem[]) {
   if (events.length > 0) return events.map((event) => event.details.split("|")[0].trim()).join(" · ");
-  if (hotels.length > 0) return `יום רגוע באזור ${hotels[0].location} עם לינה ב-${hotels[0].name}.`;
-  return "אין עדיין תכנון קשיח ליום הזה, וזה מקום טוב ל-AI להציע אופטימיזציה.";
+  return "";
 }
 
 function buildDaySummaryWithOverrides(dateStr: string, flights: Flight[], events: EventItem[], hotels: Hotel[], data: TripData) {
@@ -514,14 +599,15 @@ function buildDaySummaryWithOverrides(dateStr: string, flights: Flight[], events
     if (rawSummary === null) return "";
     if (typeof rawSummary === "string") return rawSummary.trim();
   }
-  return buildDaySummary(flights, events, hotels);
+  return buildDaySummary(flights, events);
 }
 
 function detectTravelMode(dateStr: string, title: string, summary: string, data: TripData) {
   const overrideMode = data.dayOverrides?.[dateStr]?.travelMode?.trim();
   if (overrideMode) return overrideMode;
+  if (getFlightsForDate(dateStr, data).length > 0) return "טיסה";
+  if (getCarForDate(dateStr, data)) return "רכב / דרך";
   const text = `${title} ${summary}`;
-  if (text.includes("טיסה") || text.includes("JFK") || text.includes("MIA")) return "טיסה";
   if (text.includes("רכבת") || text.includes("Amtrak")) return "רכבת";
   if (text.includes("Drive") || text.includes("Road") || text.includes("נסיעה") || text.includes("מעבורת")) return "רכב / דרך";
   return "יום יעד";
@@ -603,7 +689,7 @@ export function getProgressRatio(data: TripData = tripData) {
 }
 
 export function countLockedItems(data: TripData = tripData) {
-  return data.flights.length + data.hotels.length + Object.values(data.dayOverrides ?? {}).filter((item) => item.car).length + data.events.filter((event) => event.locked).length;
+  return data.flights.length + data.hotels.length + (data.cars ?? []).length + Object.values(data.dayOverrides ?? {}).filter((item) => item.car).length + data.events.filter((event) => event.locked).length;
 }
 
 export function countTransportDays(days: TripDay[]) {
