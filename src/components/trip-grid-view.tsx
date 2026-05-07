@@ -68,32 +68,19 @@ function formatGridDayLabel(date: string, dayName: string) {
 }
 
 function buildLocationTagStyles(locationNames: string[]) {
-  const palettes = [
-    { background: "#e7f7f4", color: "#0f766e" },
-    { background: "#eef4ff", color: "#365fc7" },
-    { background: "#fff2e8", color: "#b45309" },
-    { background: "#f5efff", color: "#6d28d9" },
-    { background: "#ecfdf3", color: "#15803d" },
-    { background: "#fff1f2", color: "#be123c" },
-    { background: "#eefbff", color: "#0369a1" },
-    { background: "#fff7ed", color: "#c2410c" },
-    { background: "#f3e8ff", color: "#7c3aed" },
-    { background: "#ecfeff", color: "#0f766e" },
-    { background: "#fef3c7", color: "#b45309" },
-    { background: "#fce7f3", color: "#be185d" },
-  ];
-
   const uniqueNames = [...new Set(locationNames.map((name) => name.trim()).filter(Boolean))];
+  const step = uniqueNames.length > 0 ? 360 / uniqueNames.length : 0;
 
   return Object.fromEntries(uniqueNames.map((name, index) => {
-    const palette = palettes[index % palettes.length];
+    const hue = Math.round((index * step + 18) % 360);
+    const borderHue = Math.round((hue + 4) % 360);
 
     return [
       name,
       {
-        background: palette.background,
-        color: palette.color,
-        borderColor: `${palette.color}22`,
+        background: `hsl(${hue} 88% 95%)`,
+        color: `hsl(${hue} 55% 34%)`,
+        borderColor: `hsl(${borderHue} 68% 78%)`,
       },
     ];
   }));
