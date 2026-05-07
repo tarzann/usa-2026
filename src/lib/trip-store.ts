@@ -43,6 +43,7 @@ export async function saveTripData(data: TripData) {
   await put(TRIP_DATA_PATHNAME, JSON.stringify(sanitized, null, 2), {
     access: "private",
     addRandomSuffix: false,
+    allowOverwrite: true,
     contentType: "application/json; charset=utf-8",
   });
 
