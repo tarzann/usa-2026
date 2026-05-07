@@ -17,7 +17,7 @@ function formatGridDayLabel(date: string, dayName: string) {
   return `${formatDate(date)} - ${cleanDayName}`;
 }
 
-function getLocationTagStyle(locationName: string) {
+function buildLocationTagStyles(locationNames: string[]) {
   const palettes = [
     { background: "#e7f7f4", color: "#0f766e" },
     { background: "#eef4ff", color: "#365fc7" },
@@ -27,16 +27,26 @@ function getLocationTagStyle(locationName: string) {
     { background: "#fff1f2", color: "#be123c" },
     { background: "#eefbff", color: "#0369a1" },
     { background: "#fff7ed", color: "#c2410c" },
+    { background: "#f3e8ff", color: "#7c3aed" },
+    { background: "#ecfeff", color: "#0f766e" },
+    { background: "#fef3c7", color: "#b45309" },
+    { background: "#fce7f3", color: "#be185d" },
   ];
 
-  const hash = [...locationName].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const palette = palettes[hash % palettes.length];
+  const uniqueNames = [...new Set(locationNames.map((name) => name.trim()).filter(Boolean))];
 
-  return {
-    background: palette.background,
-    color: palette.color,
-    borderColor: `${palette.color}22`,
-  };
+  return Object.fromEntries(uniqueNames.map((name, index) => {
+    const palette = palettes[index % palettes.length];
+
+    return [
+      name,
+      {
+        background: palette.background,
+        color: palette.color,
+        borderColor: `${palette.color}22`,
+      },
+    ];
+  }));
 }
 
 export function TripGridView({ initialTripData }: TripGridViewProps) {
@@ -58,6 +68,10 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
 
   const days = useMemo(() => buildTripDays(currentTripData), [currentTripData]);
+  const locationTagStyles = useMemo(
+    () => buildLocationTagStyles(days.map((day) => day.location.name)),
+    [days],
+  );
   const activeDay = openDate ? days.find((day) => day.date === openDate) ?? null : null;
 
   function closeModal() {
@@ -128,7 +142,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
           >
             <div className="grid-day-top">
               <span className="grid-day-date">{formatGridDayLabel(day.date, day.dayName)}</span>
-              <span className="grid-day-chip" style={getLocationTagStyle(day.location.name)}>📍 {day.location.name}</span>
+              <span className="grid-day-chip" style={locationTagStyles[day.location.name]}>📍 {day.location.name}</span>
             </div>
             <div className="grid-day-title">{day.title}</div>
             <div className="grid-day-summary">{day.summary}</div>
@@ -156,7 +170,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             </div>
 
             <div className="day-modal-meta">
-              <span className="chip" style={getLocationTagStyle(activeDay.location.name)}>📍 {activeDay.location.name}</span>
+              <span className="chip" style={locationTagStyles[activeDay.location.name]}>📍 {activeDay.location.name}</span>
               <span className="chip">{activeDay.location.region}</span>
               <span className="chip">{activeDay.travelMode}</span>
             </div>
