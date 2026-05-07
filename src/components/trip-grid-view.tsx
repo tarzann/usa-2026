@@ -222,9 +222,9 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
 
   function syncEditorState(day: TripDay, tripData: TripData) {
     const overrideTitle = tripData.dayOverrides?.[day.date]?.title?.trim();
-    const overrideSummary = tripData.dayOverrides?.[day.date]?.summary?.trim();
+    const overrideSummary = tripData.dayOverrides?.[day.date]?.summary;
     setTitleForm(overrideTitle || day.title);
-    setSummaryForm(overrideSummary || day.summary);
+    setSummaryForm(typeof overrideSummary === "string" ? overrideSummary : day.summary);
     setLocationForm(buildLocationForm(day, tripData));
     setCarForm(buildCarForm(day.car));
     setFlightForm(buildFlightForm(day.flights[0]));
@@ -282,6 +282,8 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     }
     if (summaryForm.trim()) {
       updates.push({ type: "update_day_summary", date: activeDay.date, summary: summaryForm.trim() });
+    } else {
+      updates.push({ type: "clear_day_summary", date: activeDay.date });
     }
     updates.push(...parsePlanDraftItems(planForm, activeDay.date));
     applyDirectUpdates(updates);
@@ -416,7 +418,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <span className="grid-day-chip" style={locationTagStyles[day.location.name]}>📍 {day.location.name}</span>
             </div>
             <div className="grid-day-title">{day.title}</div>
-            <div className="grid-day-summary">{day.summary}</div>
+            {day.summary ? <div className="grid-day-summary">{day.summary}</div> : null}
             <div className="grid-day-footer">
               {day.flights.length ? <span className="chip">✈️ {day.flights.length}</span> : null}
               {day.hotels.length ? <span className="chip">🏨 {day.hotels.length}</span> : null}
@@ -433,7 +435,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <div>
                 <div className="section-title">{activeDay.dayName} · {formatDate(activeDay.date)}</div>
                 <h2>{activeDay.title}</h2>
-                <p>{activeDay.summary}</p>
+                {activeDay.summary ? <p>{activeDay.summary}</p> : null}
               </div>
               <Button variant="ghost" size="icon" onClick={closeModal} aria-label="סגור פרטי יום">
                 ✕

@@ -58,7 +58,7 @@ export type DayCar = {
 
 export type DayOverride = {
   title?: string;
-  summary?: string;
+  summary?: string | null;
   location?: DayLocationOverride | null;
   car?: DayCar | null;
   travelMode?: string;
@@ -224,7 +224,7 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
       case "clear_day_summary": {
         dayOverrides[update.date] = {
           ...(dayOverrides[update.date] ?? {}),
-          summary: undefined,
+          summary: null,
         };
         break;
       }
@@ -465,8 +465,12 @@ function buildDaySummary(flights: Flight[], events: EventItem[], hotels: Hotel[]
 }
 
 function buildDaySummaryWithOverrides(dateStr: string, flights: Flight[], events: EventItem[], hotels: Hotel[], data: TripData) {
-  const overrideSummary = data.dayOverrides?.[dateStr]?.summary?.trim();
-  if (overrideSummary) return overrideSummary;
+  const override = data.dayOverrides?.[dateStr];
+  if (override && Object.prototype.hasOwnProperty.call(override, "summary")) {
+    const rawSummary = override.summary;
+    if (rawSummary === null) return "";
+    if (typeof rawSummary === "string") return rawSummary.trim();
+  }
   return buildDaySummary(flights, events, hotels);
 }
 
