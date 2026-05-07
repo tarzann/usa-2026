@@ -11,6 +11,7 @@ import {
   type DayCar,
   type Flight,
   type Hotel,
+  type TripResource,
   type TripData,
   type TripDay,
   type TripUpdateAction,
@@ -61,10 +62,18 @@ type DayHotelForm = {
   checkOut: string;
 };
 
+type TripResourceForm = {
+  title: string;
+  content: string;
+  url: string;
+  file: TripResource["file"] | null;
+};
+
 type GridEditTab = "general" | "location";
-type TripManagerType = "flight" | "hotel" | "car";
+type TripManagerType = "flight" | "hotel" | "car" | "resource";
 
 const LOCAL_STORAGE_KEY = "trip-planner-data-v1";
+const GLOBAL_RESOURCES_KEY = "__trip_resources__";
 const gridEditTabs: Array<{ id: GridEditTab; label: string; emoji: string }> = [
   { id: "general", label: "יום", emoji: "🗓️" },
   { id: "location", label: "מיקום", emoji: "📍" },
@@ -267,6 +276,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
   const [editingFlightIndex, setEditingFlightIndex] = useState<number | null>(null);
   const [editingHotelIndex, setEditingHotelIndex] = useState<number | null>(null);
   const [editingCarIndex, setEditingCarIndex] = useState<number | null>(null);
+  const [editingResourceIndex, setEditingResourceIndex] = useState<number | null>(null);
   const [todoDraft, setTodoDraft] = useState("");
   const [editingTodoText, setEditingTodoText] = useState<string | null>(null);
   const [editingTodoValue, setEditingTodoValue] = useState("");
@@ -289,6 +299,9 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     confirmation: "",
   });
   const [hotelForm, setHotelForm] = useState<DayHotelForm>({ name: "", location: "", address: "", phone: "", confirmation: "", checkIn: "", checkOut: "" });
+  const [resourceForm, setResourceForm] = useState<TripResourceForm>({ title: "", content: "", url: "", file: null });
+  const [resourceUploadError, setResourceUploadError] = useState("");
+  const [isUploadingResourceFile, setIsUploadingResourceFile] = useState(false);
   const [swapTargetDate, setSwapTargetDate] = useState("");
 
   const days = useMemo(() => buildTripDays(currentTripData), [currentTripData]);
@@ -314,6 +327,8 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     setEditingFlightIndex(null);
     setEditingHotelIndex(null);
     setEditingCarIndex(null);
+    setEditingResourceIndex(null);
+    setResourceUploadError("");
 
     if (type === "flight") {
       setFlightForm({
@@ -353,6 +368,10 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
         notes: "",
       });
     }
+
+    if (type === "resource") {
+      setResourceForm({ title: "", content: "", url: "", file: null });
+    }
   }
 
   function closeTripManager() {
@@ -360,6 +379,8 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     setEditingFlightIndex(null);
     setEditingHotelIndex(null);
     setEditingCarIndex(null);
+    setEditingResourceIndex(null);
+    setResourceUploadError("");
   }
 
   function syncEditorState(day: TripDay, tripData: TripData) {
@@ -590,6 +611,107 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     if (editingCarIndex === index) closeTripManager();
   }
 
+  function beginEditResource(index: number) {
+    const resource = currentTripData.resources?.[index];
+    if (!resource) return;
+    setEditingResourceIndex(index);
+    setResourceForm({
+      title: resource.title,
+      content: resource.content || "",
+      url: resource.url || "",
+      file: resource.file || null,
+    });
+    setTripManagerType("resource");
+    setResourceUploadError("");
+  }
+
+  async function handleResourceFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingResourceFile(true);
+      setResourceUploadError("");
+      const formData = new FormData();
+      formData.append("dayDate", GLOBAL_RESOURCES_KEY);
+      formData.append("files", file);
+
+      const response = await fetch("/api/attachments", {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = (await response.json()) as { attachments?: DayAttachment[]; error?: string };
+      if (!response.ok) throw new Error(payload.error || "Upload failed");
+      const uploaded = payload.attachments?.[0];
+      if (!uploaded) throw new Error("לא התקבל קובץ שמור.");
+
+      setResourceForm((current) => ({
+        ...current,
+        file: uploaded,
+      }));
+    } catch (error) {
+      setResourceUploadError(error instanceof Error ? error.message : "העלאת הקובץ נכשלה.");
+    } finally {
+      setIsUploadingResourceFile(false);
+      event.target.value = "";
+    }
+  }
+
+  async function removeResourceFile() {
+    if (!resourceForm.file) return;
+    try {
+      const response = await fetch("/api/attachments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: resourceForm.file.url }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Delete failed");
+      setResourceForm((current) => ({ ...current, file: null }));
+      setResourceUploadError("");
+    } catch (error) {
+      setResourceUploadError(error instanceof Error ? error.message : "מחיקת הקובץ נכשלה.");
+    }
+  }
+
+  function saveTripResource() {
+    if (!resourceForm.title.trim()) return;
+    const nextResources = [...(currentTripData.resources ?? [])];
+    const nextResource: TripResource = {
+      title: resourceForm.title.trim(),
+      content: resourceForm.content.trim() || undefined,
+      url: resourceForm.url.trim() || undefined,
+      file: resourceForm.file || undefined,
+    };
+
+    if (editingResourceIndex !== null && nextResources[editingResourceIndex]) {
+      nextResources[editingResourceIndex] = nextResource;
+    } else {
+      nextResources.push(nextResource);
+    }
+
+    commitTripData({ ...currentTripData, resources: nextResources });
+    closeTripManager();
+  }
+
+  async function deleteTripResource(index: number) {
+    const resource = currentTripData.resources?.[index];
+    if (resource?.file?.url) {
+      await fetch("/api/attachments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: resource.file.url }),
+      }).catch(() => null);
+    }
+
+    commitTripData({
+      ...currentTripData,
+      resources: (currentTripData.resources ?? []).filter((_, currentIndex) => currentIndex !== index),
+    });
+    if (editingResourceIndex === index) closeTripManager();
+  }
+
   function addTodo() {
     const text = todoDraft.trim();
     if (!text) return;
@@ -747,6 +869,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <Button variant="glass" size="sm" onClick={() => openTripManager("flight")}>ניהול טיסות</Button>
               <Button variant="glass" size="sm" onClick={() => openTripManager("hotel")}>ניהול מלונות</Button>
               <Button variant="glass" size="sm" onClick={() => openTripManager("car")}>ניהול רכבים</Button>
+              <Button variant="glass" size="sm" onClick={() => openTripManager("resource")}>קבצים וקישורים</Button>
               <Button variant="glass" size="sm" onClick={() => setActiveEditTab("location")}>ערוך מיקום</Button>
             </section>
 
@@ -952,9 +1075,10 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
       <div className="grid-fab-wrap">
         {isFabOpen ? (
           <div className="grid-fab-menu">
-            <button type="button" className="grid-fab-option" onClick={() => openTripManager("flight")}>✈️ הוסף טיסה</button>
-            <button type="button" className="grid-fab-option" onClick={() => openTripManager("hotel")}>🏨 הוסף מלון</button>
-            <button type="button" className="grid-fab-option" onClick={() => openTripManager("car")}>🚗 הוסף רכב</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("flight")}>טיסות</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("car")}>רכב</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("hotel")}>מלונות</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("resource")}>קבצים וקישורים</button>
           </div>
         ) : null}
         <button
@@ -974,7 +1098,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <div>
                 <div className="section-title">ניהול ברמת הטיול</div>
                 <h2>
-                  {tripManagerType === "flight" ? "טיסות" : tripManagerType === "hotel" ? "מלונות" : "רכבים"}
+                  {tripManagerType === "flight" ? "טיסות" : tripManagerType === "hotel" ? "מלונות" : tripManagerType === "car" ? "רכבים" : "קבצים וקישורים"}
                 </h2>
                 <p>כאן מנהלים את הלוגיסטיקה של כל הטיול, בלי קשר ליום אחד ספציפי.</p>
               </div>
@@ -1131,6 +1255,56 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
                   <div className="day-modal-actions">
                     <Button variant="primary" onClick={saveTripCar}>{editingCarIndex !== null ? "שמור שינויים" : "הוסף רכב"}</Button>
                     {editingCarIndex !== null ? <Button variant="ghost" onClick={() => deleteTripCar(editingCarIndex)}>מחק</Button> : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {tripManagerType === "resource" ? (
+              <div className="trip-manager-grid">
+                <div className="trip-manager-list">
+                  {(currentTripData.resources ?? []).map((resource, index) => (
+                    <button key={`${resource.title}-${index}`} type="button" className={`trip-manager-item ${editingResourceIndex === index ? "active" : ""}`} onClick={() => beginEditResource(index)}>
+                      <strong>{resource.title}</strong>
+                      <span>{resource.content || resource.url || resource.file?.name || "פריט מידע"}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="day-modal-editor-grid">
+                  <label className="day-modal-field">
+                    <span>כותרת</span>
+                    <input value={resourceForm.title} onChange={(event) => setResourceForm((current) => ({ ...current, title: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>תוכן</span>
+                    <textarea rows={4} value={resourceForm.content} onChange={(event) => setResourceForm((current) => ({ ...current, content: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>לינק</span>
+                    <input value={resourceForm.url} onChange={(event) => setResourceForm((current) => ({ ...current, url: event.target.value }))} placeholder="https://..." />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>קובץ להעלאה</span>
+                    <input type="file" onChange={handleResourceFileSelect} disabled={isUploadingResourceFile} />
+                  </label>
+                  {resourceForm.file ? (
+                    <div className="resource-file-card">
+                      <div>
+                        <strong>{resourceForm.file.name}</strong>
+                        <span>{resourceForm.file.contentType || "קובץ"}</span>
+                      </div>
+                      <div className="day-modal-actions">
+                        <Button variant="ghost" size="sm" onClick={() => window.open(`/api/attachments/file?pathname=${encodeURIComponent(resourceForm.file!.pathname)}`, "_blank", "noopener,noreferrer")}>פתח</Button>
+                        <Button variant="ghost" size="sm" onClick={removeResourceFile}>הסר קובץ</Button>
+                      </div>
+                    </div>
+                  ) : null}
+                  {resourceUploadError ? <div className="attachments-error">{resourceUploadError}</div> : null}
+                  <div className="day-modal-actions">
+                    <Button variant="primary" onClick={saveTripResource}>
+                      {editingResourceIndex !== null ? "שמור שינויים" : "הוסף פריט"}
+                    </Button>
+                    {editingResourceIndex !== null ? <Button variant="ghost" onClick={() => deleteTripResource(editingResourceIndex)}>מחק</Button> : null}
                   </div>
                 </div>
               </div>

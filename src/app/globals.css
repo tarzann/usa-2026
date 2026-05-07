@@ -1697,6 +1697,27 @@ a {
   flex-wrap: wrap;
 }
 
+.resource-file-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+}
+
+.resource-file-card > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.resource-file-card span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 @media (max-width: 1180px) {
   .hero-grid,
   .workspace,

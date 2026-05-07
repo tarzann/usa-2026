@@ -50,6 +50,20 @@ export type Todo = {
   done: boolean;
 };
 
+export type TripResource = {
+  title: string;
+  content?: string;
+  url?: string;
+  file?: {
+    url: string;
+    pathname: string;
+    size: number;
+    uploadedAt: string;
+    contentType: string;
+    name: string;
+  };
+};
+
 export type DayLocationOverride = {
   name: string;
   region?: string;
@@ -85,6 +99,7 @@ export type TripData = {
   events: EventItem[];
   hotels: Hotel[];
   cars?: DayCar[];
+  resources?: TripResource[];
   todos: Todo[];
   dayOverrides?: Record<string, DayOverride>;
   skippedDates?: string[];
@@ -202,6 +217,7 @@ export function sanitizeTripData(data: TripData): TripData {
       const endDate = car.endDate ?? startDate;
       return endDate >= data.startDate && startDate <= data.endDate;
     }),
+    resources: data.resources ?? [],
     dayOverrides: data.dayOverrides ?? {},
     skippedDates: (data.skippedDates ?? []).filter((date) => isDateInTrip(date, data)),
   };
@@ -215,6 +231,10 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
     events: [...data.events],
     hotels: [...data.hotels],
     cars: (data.cars ?? []).map((car) => ({ ...car })),
+    resources: (data.resources ?? []).map((resource) => ({
+      ...resource,
+      file: resource.file ? { ...resource.file } : undefined,
+    })),
     todos: data.todos.map((todo) => ({ ...todo })),
     dayOverrides: { ...(data.dayOverrides ?? {}) },
     skippedDates: [...(data.skippedDates ?? [])],
