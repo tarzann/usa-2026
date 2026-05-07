@@ -1174,11 +1174,11 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
       <div className="grid-fab-wrap">
         {isFabOpen ? (
           <div className="grid-fab-menu">
-            <button type="button" className="grid-fab-option" onClick={() => openTripManager("flight")}>טיסות</button>
-            <button type="button" className="grid-fab-option" onClick={() => openTripManager("car")}>רכב</button>
-            <button type="button" className="grid-fab-option" onClick={() => openTripManager("hotel")}>מלונות</button>
-            <button type="button" className="grid-fab-option" onClick={() => openTripManager("resource")}>קבצים וקישורים</button>
-            <button type="button" className="grid-fab-option" onClick={() => openTripManager("todo")}>משימות פתוחות לסגירה</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("flight")}>✈️ טיסות</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("car")}>🚗 רכב</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("hotel")}>🏨 מלונות</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("resource")}>🔗 קבצים וקישורים</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("todo")}>✅ משימות פתוחות לסגירה</button>
           </div>
         ) : null}
         <button
