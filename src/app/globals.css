@@ -1460,6 +1460,7 @@ a {
 
 .day-gallery-item,
 .day-photo-fallback {
+  position: relative;
   min-height: 170px;
   border-radius: 18px;
   overflow: hidden;
