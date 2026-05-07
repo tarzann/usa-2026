@@ -1,4 +1,4 @@
-import { get, put } from "@vercel/blob";
+import { get, list, put } from "@vercel/blob";
 import { sanitizeTripData, tripData as fallbackTripData, type TripData } from "@/lib/trip";
 
 const TRIP_DATA_PATHNAME = "trip-data/current.json";
@@ -9,7 +9,14 @@ async function readStreamText(stream: ReadableStream<Uint8Array>) {
 
 export async function loadTripData() {
   try {
-    const result = await get(TRIP_DATA_PATHNAME, {
+    const { blobs } = await list({ prefix: TRIP_DATA_PATHNAME });
+    const currentBlob = blobs.find((blob) => blob.pathname === TRIP_DATA_PATHNAME);
+
+    if (!currentBlob) {
+      return fallbackTripData;
+    }
+
+    const result = await get(currentBlob.pathname, {
       access: "private",
     });
 

@@ -178,6 +178,8 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tripData: nextTripData }),
+      cache: "no-store",
+      keepalive: true,
     });
 
     const payload = (await response.json()) as { tripData?: TripData; error?: string };
