@@ -70,7 +70,7 @@ type TripResourceForm = {
 };
 
 type GridEditTab = "general" | "location";
-type TripManagerType = "flight" | "hotel" | "car" | "resource";
+type TripManagerType = "flight" | "hotel" | "car" | "resource" | "todo";
 
 const LOCAL_STORAGE_KEY = "trip-planner-data-v1";
 const GLOBAL_RESOURCES_KEY = "__trip_resources__";
@@ -371,6 +371,12 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
 
     if (type === "resource") {
       setResourceForm({ title: "", content: "", url: "", file: null });
+    }
+
+    if (type === "todo") {
+      setTodoDraft("");
+      setEditingTodoText(null);
+      setEditingTodoValue("");
     }
   }
 
@@ -773,43 +779,17 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             <h3>מה פתוח לסגירה</h3>
             <p>הכרטיס מציג קודם את המשימות של היום שנבחר, ואם אין כאלה אז את המשימות הפתוחות המרכזיות של הטיול.</p>
           </div>
-          <span className="badge">{visibleTodos.length} פריטים</span>
-        </div>
-        <div className="grid-task-compose">
-          <input
-            className="day-modal-field-inputlike"
-            value={todoDraft}
-            onChange={(event) => setTodoDraft(event.target.value)}
-            placeholder="הוסף משימה חדשה לסגירה"
-          />
-          <Button variant="primary" onClick={addTodo}>הוסף</Button>
+          <div className="grid-task-head-actions">
+            <span className="badge">{visibleTodos.length} פריטים</span>
+            <Button variant="glass" size="sm" onClick={() => openTripManager("todo")}>פתח ניהול</Button>
+          </div>
         </div>
         <div className="task-list">
           {visibleTodos.length ? visibleTodos.map((task) => (
             <div key={task.text} className={`task-item ${task.done ? "done" : ""} grid-task-item`}>
-              <button type="button" className="task-status" onClick={() => toggleTodo(task.text, task.done)} aria-label={task.done ? "פתח משימה מחדש" : "סמן משימה כבוצעה"} />
+              <span className="task-status" />
               <div className="grid-task-main">
-                {editingTodoText === task.text ? (
-                  <div className="grid-task-edit">
-                    <input
-                      className="day-modal-field-inputlike"
-                      value={editingTodoValue}
-                      onChange={(event) => setEditingTodoValue(event.target.value)}
-                    />
-                    <div className="day-modal-actions">
-                      <Button variant="primary" size="sm" onClick={saveTodoEdit}>שמור</Button>
-                      <Button variant="ghost" size="sm" onClick={() => setEditingTodoText(null)}>בטל</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="task-copy">{task.text}</div>
-                    <div className="grid-task-actions">
-                      <Button variant="ghost" size="sm" onClick={() => beginEditTodo(task.text)}>ערוך</Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteTodo(task.text)}>מחק</Button>
-                    </div>
-                  </>
-                )}
+                <div className="task-copy">{task.text}</div>
               </div>
             </div>
           )) : (
@@ -1079,6 +1059,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("car")}>רכב</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("hotel")}>מלונות</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("resource")}>קבצים וקישורים</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("todo")}>משימות פתוחות לסגירה</button>
           </div>
         ) : null}
         <button
@@ -1098,7 +1079,15 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <div>
                 <div className="section-title">ניהול ברמת הטיול</div>
                 <h2>
-                  {tripManagerType === "flight" ? "טיסות" : tripManagerType === "hotel" ? "מלונות" : tripManagerType === "car" ? "רכבים" : "קבצים וקישורים"}
+                  {tripManagerType === "flight"
+                    ? "טיסות"
+                    : tripManagerType === "hotel"
+                      ? "מלונות"
+                      : tripManagerType === "car"
+                        ? "רכבים"
+                        : tripManagerType === "resource"
+                          ? "קבצים וקישורים"
+                          : "משימות פתוחות לסגירה"}
                 </h2>
                 <p>כאן מנהלים את הלוגיסטיקה של כל הטיול, בלי קשר ליום אחד ספציפי.</p>
               </div>
@@ -1305,6 +1294,42 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
                       {editingResourceIndex !== null ? "שמור שינויים" : "הוסף פריט"}
                     </Button>
                     {editingResourceIndex !== null ? <Button variant="ghost" onClick={() => deleteTripResource(editingResourceIndex)}>מחק</Button> : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {tripManagerType === "todo" ? (
+              <div className="trip-manager-grid">
+                <div className="trip-manager-list">
+                  {currentTripData.todos.map((todo) => (
+                    <button key={todo.text} type="button" className={`trip-manager-item ${editingTodoText === todo.text ? "active" : ""}`} onClick={() => beginEditTodo(todo.text)}>
+                      <strong>{todo.done ? "✅" : "⏳"} {todo.text}</strong>
+                      <span>{todo.done ? "סומן כבוצע" : "עדיין פתוח לסגירה"}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="day-modal-editor-grid">
+                  <label className="day-modal-field">
+                    <span>משימה</span>
+                    <input
+                      value={editingTodoText ? editingTodoValue : todoDraft}
+                      onChange={(event) => editingTodoText ? setEditingTodoValue(event.target.value) : setTodoDraft(event.target.value)}
+                      placeholder="למשל: להזמין כרטיסים"
+                    />
+                  </label>
+                  <div className="day-modal-actions">
+                    {editingTodoText ? (
+                      <>
+                        <Button variant="primary" onClick={saveTodoEdit}>שמור שינויים</Button>
+                        <Button variant="ghost" onClick={() => toggleTodo(editingTodoText, Boolean(currentTripData.todos.find((todo) => todo.text === editingTodoText)?.done))}>
+                          {currentTripData.todos.find((todo) => todo.text === editingTodoText)?.done ? "פתח מחדש" : "סמן כבוצע"}
+                        </Button>
+                        <Button variant="ghost" onClick={() => deleteTodo(editingTodoText)}>מחק</Button>
+                      </>
+                    ) : (
+                      <Button variant="primary" onClick={addTodo}>הוסף משימה</Button>
+                    )}
                   </div>
                 </div>
               </div>

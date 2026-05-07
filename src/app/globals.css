@@ -1665,6 +1665,13 @@ a {
   gap: 10px;
 }
 
+.grid-task-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .day-modal-field-inputlike {
   width: 100%;
   border: 1px solid rgba(38, 77, 91, 0.1);
