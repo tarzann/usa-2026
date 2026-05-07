@@ -1477,7 +1477,8 @@ a {
 }
 
 .day-modal-field input,
-.day-modal-field textarea {
+.day-modal-field textarea,
+.day-modal-field select {
   width: 100%;
   border: 1px solid rgba(38, 77, 91, 0.1);
   border-radius: 16px;
@@ -1488,7 +1489,8 @@ a {
 }
 
 .day-modal-field input:focus,
-.day-modal-field textarea:focus {
+.day-modal-field textarea:focus,
+.day-modal-field select:focus {
   outline: none;
   box-shadow: var(--focus-ring);
   border-color: rgba(42, 166, 161, 0.28);
@@ -1507,6 +1509,21 @@ a {
 .day-modal-existing {
   display: grid;
   gap: 8px;
+}
+
+.day-modal-swap {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(244, 249, 250, 0.86);
+  border: 1px dashed rgba(42, 166, 161, 0.22);
+}
+
+.day-modal-help {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.6;
 }
 
 .day-modal-existing-item {

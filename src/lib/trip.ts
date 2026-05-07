@@ -99,6 +99,7 @@ export type TripUpdateAction =
   | { type: "update_car"; date: string; provider?: string; pickup?: string; dropoff?: string; confirmation?: string; notes?: string }
   | { type: "clear_car"; date: string }
   | { type: "clear_day_summary"; date: string }
+  | { type: "swap_day_content"; fromDate: string; toDate: string }
   | { type: "add_day"; date: string }
   | { type: "remove_day"; date: string };
 
@@ -226,6 +227,38 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
           ...(dayOverrides[update.date] ?? {}),
           summary: null,
         };
+        break;
+      }
+      case "swap_day_content": {
+        const { fromDate, toDate } = update;
+        if (fromDate === toDate) break;
+
+        nextData.events = nextData.events.map((event) => {
+          if (event.date === fromDate) return { ...event, date: toDate };
+          if (event.date === toDate) return { ...event, date: fromDate };
+          return event;
+        });
+
+        nextData.flights = nextData.flights.map((flight) => {
+          if (flight.date === fromDate) return { ...flight, date: toDate };
+          if (flight.date === toDate) return { ...flight, date: fromDate };
+          return flight;
+        });
+
+        const fromOverride = cloneDayOverride(dayOverrides[fromDate]);
+        const toOverride = cloneDayOverride(dayOverrides[toDate]);
+
+        if (toOverride) {
+          dayOverrides[fromDate] = toOverride;
+        } else {
+          delete dayOverrides[fromDate];
+        }
+
+        if (fromOverride) {
+          dayOverrides[toDate] = fromOverride;
+        } else {
+          delete dayOverrides[toDate];
+        }
         break;
       }
       case "update_event": {
@@ -381,6 +414,16 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
   }
 
   return sanitizeTripData(nextData);
+}
+
+function cloneDayOverride(override: DayOverride | undefined) {
+  if (!override) return undefined;
+
+  return {
+    ...override,
+    location: override.location ? { ...override.location } : override.location,
+    car: override.car ? { ...override.car } : override.car,
+  };
 }
 
 export function formatDate(dateStr: string) {

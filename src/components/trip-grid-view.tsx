@@ -205,6 +205,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
   const [carForm, setCarForm] = useState<DayCarForm>({ provider: "", pickup: "", dropoff: "", confirmation: "", notes: "" });
   const [flightForm, setFlightForm] = useState<DayFlightForm>({ label: "", details: "", booking: "" });
   const [hotelForm, setHotelForm] = useState<DayHotelForm>({ name: "", location: "", address: "", phone: "", confirmation: "", checkOut: "" });
+  const [swapTargetDate, setSwapTargetDate] = useState("");
 
   const days = useMemo(() => buildTripDays(currentTripData), [currentTripData]);
   const locationTagStyles = useMemo(
@@ -230,6 +231,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     setFlightForm(buildFlightForm(day.flights[0]));
     setHotelForm(buildHotelForm(day.hotels[0], day.date));
     setPlanForm("");
+    setSwapTargetDate("");
   }
 
   useEffect(() => {
@@ -386,6 +388,11 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     applyDirectUpdates([{ type: "delete_event", date: activeDay.date, label }]);
   }
 
+  function swapDayContent() {
+    if (!activeDay || !swapTargetDate || swapTargetDate === activeDay.date) return;
+    applyDirectUpdates([{ type: "swap_day_content", fromDate: activeDay.date, toDate: swapTargetDate }]);
+  }
+
   return (
     <main className="grid-view-shell">
       <section className="grid-view-hero">
@@ -489,6 +496,30 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
                   </label>
                   <div className="day-modal-actions">
                     <Button variant="primary" onClick={saveGeneral}>שמור</Button>
+                  </div>
+                  <div className="day-modal-swap">
+                    <label className="day-modal-field">
+                      <span>החלף תוכן עם יום אחר</span>
+                      <select
+                        value={swapTargetDate}
+                        onChange={(event) => setSwapTargetDate(event.target.value)}
+                      >
+                        <option value="">בחר יום יעד</option>
+                        {days.filter((day) => day.date !== activeDay.date).map((day) => (
+                          <option key={day.date} value={day.date}>
+                            {formatGridDayLabel(day.date, day.dayName)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="day-modal-actions">
+                      <Button variant="glass" onClick={swapDayContent} disabled={!swapTargetDate}>
+                        החלף בין הימים
+                      </Button>
+                    </div>
+                    <p className="day-modal-help">
+                      הפעולה מחליפה בין הימים את הכותרת, הסיכום, המיקום, הטיסות, הרכב ופריטי התכנון. מלונות נשארים כרגע בלי שינוי.
+                    </p>
                   </div>
                   {activeDay.events.length ? (
                     <div className="day-modal-existing">
