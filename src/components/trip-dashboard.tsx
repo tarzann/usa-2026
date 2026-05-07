@@ -162,6 +162,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const [isPending, startTransition] = useTransition();
   const days = buildTripDays(currentTripData).map((day) => applyDayPresentationOverrides(day, currentTripData));
   const activeSelectedDate = days.some((day) => day.date === selectedDate) ? selectedDate : (days[0]?.date ?? "");
+  const initialSelectedDateRef = useRef(activeSelectedDate);
   const selectedDay = days.find((day) => day.date === activeSelectedDate) ?? days[0];
   const nextDay = days[selectedDay.index + 1];
   const selectedDayLocation = resolveDayDisplayLocation(selectedDay, currentTripData);
@@ -344,6 +345,32 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
     setHotelForm(buildHotelForm(day.hotels[0], day.date));
     setPlanForm("");
   }
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/trip", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = (await response.json()) as { tripData?: TripData; error?: string };
+        if (!response.ok || !payload.tripData) {
+          throw new Error(payload.error || "Failed to load trip data");
+        }
+
+        return sanitizeTripData(payload.tripData);
+      })
+      .then((serverTripData) => {
+        if (!active) return;
+        setCurrentTripData(serverTripData);
+        syncDayManagementForms(initialSelectedDateRef.current, serverTripData);
+      })
+      .catch((error) => {
+        console.error("Failed to refresh trip data from server", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function saveLocation() {
     if (!locationForm.name.trim()) return;

@@ -418,6 +418,31 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     [currentTripData.todos],
   );
 
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/trip", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = (await response.json()) as { tripData?: TripData; error?: string };
+        if (!response.ok || !payload.tripData) {
+          throw new Error(payload.error || "Failed to load trip data");
+        }
+
+        return sanitizeTripData(payload.tripData);
+      })
+      .then((serverTripData) => {
+        if (!active) return;
+        setCurrentTripData(serverTripData);
+      })
+      .catch((error) => {
+        console.error("Failed to refresh trip data from server", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function closeModal() {
     setOpenDate(null);
     setAttachments([]);
