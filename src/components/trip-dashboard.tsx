@@ -131,25 +131,11 @@ const quickPrompts = [
   { title: "תן המלצה ליום הזה", body: "מה כדאי לשפר ביום הנבחר?" },
 ];
 
-const LOCAL_STORAGE_KEY = "trip-planner-data-v1";
-
 export function TripDashboard({ days: initialDays, initialTripData, googleMapsApiKey }: TripDashboardProps) {
   const timelineListRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const detailCardRef = useRef<HTMLElement | null>(null);
-  const [currentTripData, setCurrentTripData] = useState<TripData>(() => {
-    if (typeof window === "undefined") return initialTripData;
-
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) return initialTripData;
-
-    try {
-      return sanitizeTripData(JSON.parse(raw) as TripData);
-    } catch {
-      window.localStorage.removeItem(LOCAL_STORAGE_KEY);
-      return initialTripData;
-    }
-  });
+  const [currentTripData, setCurrentTripData] = useState<TripData>(initialTripData);
   const initialResolvedDays = buildTripDays(currentTripData);
   const [selectedDate, setSelectedDate] = useState(initialDays[0]?.date ?? "");
   const [chatInput, setChatInput] = useState("");
@@ -186,9 +172,36 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   const dayStats = getDayStats(selectedDay);
   const smartBrief = buildSmartBrief(selectedDay, nextDay, attachments.length);
   const intentActions = buildIntentActions(selectedDay, currentTripData.flights.length > 0);
-  useEffect(() => {
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentTripData));
-  }, [currentTripData]);
+
+  async function persistTripData(nextTripData: TripData) {
+    const response = await fetch("/api/trip", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tripData: nextTripData }),
+    });
+
+    const payload = (await response.json()) as { tripData?: TripData; error?: string };
+
+    if (!response.ok || !payload.tripData) {
+      throw new Error(payload.error || "Failed to save trip data");
+    }
+
+    return sanitizeTripData(payload.tripData);
+  }
+
+  function commitTripData(nextTripData: TripData) {
+    const sanitized = sanitizeTripData(nextTripData);
+    setCurrentTripData(sanitized);
+    syncDayManagementForms(activeSelectedDate, sanitized);
+    void persistTripData(sanitized)
+      .then((serverTripData) => {
+        setCurrentTripData(serverTripData);
+        syncDayManagementForms(activeSelectedDate, serverTripData);
+      })
+      .catch((error) => {
+        console.error("Failed to persist trip data", error);
+      });
+  }
 
   useEffect(() => {
     const card = detailCardRef.current;
@@ -273,7 +286,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
       setChatInput("");
 
       if (immediateUpdates.length) {
-        setCurrentTripData((current) => applyTripUpdates(current, immediateUpdates));
+        commitTripData(applyTripUpdates(scopedTripData, immediateUpdates));
         appendMessage({ role: "assistant", body: buildImmediateUpdateReply(immediateUpdates) });
         return;
       }
@@ -295,7 +308,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
         }
 
         if (payload.updates?.length) {
-          setCurrentTripData((current) => applyTripUpdates(current, payload.updates || []));
+          commitTripData(applyTripUpdates(scopedTripData, payload.updates || []));
         }
 
         appendMessage({ role: "assistant", body: payload.reply || fallback });
@@ -316,8 +329,7 @@ export function TripDashboard({ days: initialDays, initialTripData, googleMapsAp
   function applyDirectUpdates(updates: TripUpdateAction[]) {
     if (!updates.length) return;
     const nextTripData = applyTripUpdates(currentTripData, updates);
-    setCurrentTripData(nextTripData);
-    syncDayManagementForms(activeSelectedDate, nextTripData);
+    commitTripData(nextTripData);
     setChatHistory((current) => [...current, { role: "assistant", body: buildImmediateUpdateReply(updates) }]);
   }
 

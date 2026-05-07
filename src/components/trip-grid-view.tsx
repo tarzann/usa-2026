@@ -81,7 +81,6 @@ type DestinationHeroForm = {
 type GridEditTab = "general" | "location";
 type TripManagerType = "flight" | "hotel" | "car" | "resource" | "todo" | "hero";
 
-const LOCAL_STORAGE_KEY = "trip-planner-data-v1";
 const GLOBAL_RESOURCES_KEY = "__trip_resources__";
 const GLOBAL_HERO_KEY = "__trip_hero__";
 const gridEditTabs: Array<{ id: GridEditTab; label: string; emoji: string }> = [
@@ -360,19 +359,7 @@ function DayPhoto({
 }
 
 export function TripGridView({ initialTripData }: TripGridViewProps) {
-  const [currentTripData, setCurrentTripData] = useState<TripData>(() => {
-    if (typeof window === "undefined") return initialTripData;
-
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) return initialTripData;
-
-    try {
-      return sanitizeTripData(JSON.parse(raw) as TripData);
-    } catch {
-      window.localStorage.removeItem(LOCAL_STORAGE_KEY);
-      return initialTripData;
-    }
-  });
+  const [currentTripData, setCurrentTripData] = useState<TripData>(initialTripData);
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<DayAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
@@ -531,14 +518,32 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     setSwapTargetDate("");
   }
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentTripData));
-  }, [currentTripData]);
+  async function persistTripData(nextTripData: TripData) {
+    const response = await fetch("/api/trip", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tripData: nextTripData }),
+    });
+
+    const payload = (await response.json()) as { tripData?: TripData; error?: string };
+
+    if (!response.ok || !payload.tripData) {
+      throw new Error(payload.error || "Failed to save trip data");
+    }
+
+    return sanitizeTripData(payload.tripData);
+  }
 
   function commitTripData(nextTripData: TripData) {
     const sanitized = sanitizeTripData(nextTripData);
     setCurrentTripData(sanitized);
+    void persistTripData(sanitized)
+      .then((serverTripData) => {
+        setCurrentTripData(serverTripData);
+      })
+      .catch((error) => {
+        console.error("Failed to persist trip data", error);
+      });
     if (activeDay) {
       const nextDay = buildTripDays(sanitized).find((day) => day.date === activeDay.date);
       if (nextDay) syncEditorState(nextDay, sanitized);
