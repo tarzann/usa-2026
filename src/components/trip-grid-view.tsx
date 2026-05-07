@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,6 +78,42 @@ const GLOBAL_RESOURCES_KEY = "__trip_resources__";
 const gridEditTabs: Array<{ id: GridEditTab; label: string; emoji: string }> = [
   { id: "general", label: "יום", emoji: "🗓️" },
   { id: "location", label: "מיקום", emoji: "📍" },
+];
+
+const locationImageQueries: Record<string, string[]> = {
+  "ניו יורק": ["new-york-city", "manhattan-skyline"],
+  "וושינגטון DC": ["washington-dc", "national-mall"],
+  "הכביש המזרחי": ["scenic-road-trip", "coastal-highway"],
+  "אורלנדו": ["orlando", "theme-park"],
+  "Miami": ["miami-beach", "south-beach"],
+  "Kennedy Space Center": ["kennedy-space-center", "space-shuttle"],
+  "Norfolk": ["norfolk-virginia", "waterfront"],
+  "Outer Banks": ["outer-banks", "sand-dunes"],
+  "Beaufort": ["beaufort-north-carolina", "historic-waterfront"],
+  "Charleston": ["charleston-south-carolina", "historic-district"],
+  "Savannah": ["savannah-georgia", "forsyth-park"],
+  "Appalachia": ["blue-ridge-parkway", "smoky-mountains"],
+};
+
+const attractionQueryMap: Array<{ test: RegExp; query: string[] }> = [
+  { test: /statue of liberty|liberty/i, query: ["statue-of-liberty", "new-york"] },
+  { test: /ellis island/i, query: ["ellis-island", "new-york-harbor"] },
+  { test: /9\/11|one world trade|memorial/i, query: ["one-world-trade-center", "new-york"] },
+  { test: /central park/i, query: ["central-park", "new-york"] },
+  { test: /moma/i, query: ["museum-of-modern-art", "new-york"] },
+  { test: /times square/i, query: ["times-square", "new-york-night"] },
+  { test: /brooklyn bridge/i, query: ["brooklyn-bridge", "new-york"] },
+  { test: /amtrak|train|union station/i, query: ["amtrak-train", "union-station"] },
+  { test: /lincoln|white house|smithsonian|georgetown/i, query: ["washington-dc", "monuments"] },
+  { test: /outer banks|ocracoke/i, query: ["outer-banks", "beach"] },
+  { test: /charleston/i, query: ["charleston-south-carolina", "historic-street"] },
+  { test: /savannah/i, query: ["savannah-georgia", "historic-square"] },
+  { test: /kennedy/i, query: ["kennedy-space-center", "space-shuttle"] },
+  { test: /epcot/i, query: ["epcot", "orlando"] },
+  { test: /magic kingdom|disney/i, query: ["magic-kingdom", "orlando"] },
+  { test: /animal kingdom/i, query: ["animal-kingdom", "orlando"] },
+  { test: /universal|epic universe/i, query: ["universal-orlando", "theme-park"] },
+  { test: /miami/i, query: ["miami-beach", "florida"] },
 ];
 
 function formatGridDayLabel(date: string, dayName: string) {
@@ -252,6 +289,73 @@ function parsePlanDraftItems(value: string, date: string): TripUpdateAction[] {
       };
     })
     .filter((item) => item.label.trim() && item.details.trim());
+}
+
+function buildPhotoUrl(queryParts: string[], seed: string, width = 1200, height = 800) {
+  const tags = queryParts
+    .flatMap((part) => part.split(/[,\s]+/))
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean)
+    .join(",");
+
+  return `https://loremflickr.com/${width}/${height}/${encodeURIComponent(tags)}?lock=${encodeURIComponent(seed)}`;
+}
+
+function getLocationImageQuery(day: TripDay) {
+  return locationImageQueries[day.location.name] || [day.location.name, day.location.region];
+}
+
+function getDayHeroImage(day: TripDay) {
+  const query = getLocationImageQuery(day);
+  return {
+    src: buildPhotoUrl(query, `hero-${day.date}`, 1200, 700),
+    alt: `${day.location.name} hero`,
+  };
+}
+
+function getDayGalleryImages(day: TripDay) {
+  const eventQueries = day.events
+    .map((event) => {
+      const match = attractionQueryMap.find((entry) => entry.test.test(`${event.label} ${event.details}`));
+      return match?.query ?? [event.label, day.location.name];
+    })
+    .slice(0, 3);
+
+  const fallbackQueries = eventQueries.length
+    ? eventQueries
+    : [getLocationImageQuery(day), [day.title, day.location.name], [day.location.region, day.location.name]];
+
+  return fallbackQueries.map((query, index) => ({
+    src: buildPhotoUrl(query, `gallery-${day.date}-${index}`, 900, 620),
+    alt: `${day.title} ${index + 1}`,
+  }));
+}
+
+function DayPhoto({
+  src,
+  alt,
+  className,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return <div className={`day-photo-fallback ${className || ""}`.trim()} aria-hidden="true" />;
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      className={className}
+      fill
+      sizes={className?.includes("grid-day-hero-image") ? "(max-width: 760px) 100vw, 33vw" : "(max-width: 760px) 100vw, 33vw"}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export function TripGridView({ initialTripData }: TripGridViewProps) {
@@ -810,9 +914,16 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               setOpenDate(day.date);
             }}
           >
+            <div className="grid-day-hero">
+              <DayPhoto {...getDayHeroImage(day)} className="grid-day-hero-image" />
+              <div className="grid-day-hero-overlay" />
+              <div className="grid-day-hero-copy">
+                <span className="grid-day-date">{formatGridDayLabel(day.date, day.dayName)}</span>
+                <span className="grid-day-chip" style={locationTagStyles[day.location.name]}>📍 {day.location.name}</span>
+              </div>
+            </div>
             <div className="grid-day-top">
-              <span className="grid-day-date">{formatGridDayLabel(day.date, day.dayName)}</span>
-              <span className="grid-day-chip" style={locationTagStyles[day.location.name]}>📍 {day.location.name}</span>
+              <span className="grid-day-kicker">{day.travelMode}</span>
             </div>
             <div className="grid-day-title">{day.title}</div>
             {day.summary ? <div className="grid-day-summary">{day.summary}</div> : null}
@@ -844,6 +955,14 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <span className="chip">{activeDay.location.region}</span>
               <span className="chip">{activeDay.travelMode}</span>
             </div>
+
+            <section className="day-gallery">
+              {getDayGalleryImages(activeDay).map((image) => (
+                <div key={image.src} className="day-gallery-item">
+                  <DayPhoto src={image.src} alt={image.alt} className="day-gallery-image" />
+                </div>
+              ))}
+            </section>
 
             <section className="day-modal-quick-links">
               <Button variant="glass" size="sm" onClick={() => openTripManager("flight")}>ניהול טיסות</Button>
