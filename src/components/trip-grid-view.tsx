@@ -267,6 +267,9 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
   const [editingFlightIndex, setEditingFlightIndex] = useState<number | null>(null);
   const [editingHotelIndex, setEditingHotelIndex] = useState<number | null>(null);
   const [editingCarIndex, setEditingCarIndex] = useState<number | null>(null);
+  const [todoDraft, setTodoDraft] = useState("");
+  const [editingTodoText, setEditingTodoText] = useState<string | null>(null);
+  const [editingTodoValue, setEditingTodoValue] = useState("");
   const [activeEditTab, setActiveEditTab] = useState<GridEditTab>("general");
   const [titleForm, setTitleForm] = useState("");
   const [summaryForm, setSummaryForm] = useState("");
@@ -294,6 +297,9 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     [days],
   );
   const activeDay = openDate ? days.find((day) => day.date === openDate) ?? null : null;
+  const visibleTodos = activeDay?.pendingTodos.length
+    ? currentTripData.todos.filter((todo) => activeDay.pendingTodos.some((item) => item.text === todo.text))
+    : currentTripData.todos.filter((todo) => !todo.done).slice(0, 6);
 
   function closeModal() {
     setOpenDate(null);
@@ -584,6 +590,46 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     if (editingCarIndex === index) closeTripManager();
   }
 
+  function addTodo() {
+    const text = todoDraft.trim();
+    if (!text) return;
+    applyDirectUpdates([{ type: "add_todo", text }]);
+    setTodoDraft("");
+  }
+
+  function toggleTodo(todoText: string, done: boolean) {
+    applyDirectUpdates([{ type: done ? "reopen_todo" : "complete_todo", text: todoText }]);
+  }
+
+  function beginEditTodo(todoText: string) {
+    setEditingTodoText(todoText);
+    setEditingTodoValue(todoText);
+  }
+
+  function saveTodoEdit() {
+    const nextText = editingTodoValue.trim();
+    if (!editingTodoText || !nextText) return;
+    commitTripData({
+      ...currentTripData,
+      todos: currentTripData.todos.map((todo) =>
+        todo.text === editingTodoText ? { ...todo, text: nextText } : todo,
+      ),
+    });
+    setEditingTodoText(null);
+    setEditingTodoValue("");
+  }
+
+  function deleteTodo(todoText: string) {
+    commitTripData({
+      ...currentTripData,
+      todos: currentTripData.todos.filter((todo) => todo.text !== todoText),
+    });
+    if (editingTodoText === todoText) {
+      setEditingTodoText(null);
+      setEditingTodoValue("");
+    }
+  }
+
   return (
     <main className="grid-view-shell">
       <section className="grid-view-hero">
@@ -597,6 +643,57 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
         <Link className="grid-view-back" href="/">
           חזרה לתצוגה הראשית
         </Link>
+      </section>
+
+      <section className="tasks-card grid-tasks-card">
+        <div className="card-head">
+          <div>
+            <h3>מה פתוח לסגירה</h3>
+            <p>הכרטיס מציג קודם את המשימות של היום שנבחר, ואם אין כאלה אז את המשימות הפתוחות המרכזיות של הטיול.</p>
+          </div>
+          <span className="badge">{visibleTodos.length} פריטים</span>
+        </div>
+        <div className="grid-task-compose">
+          <input
+            className="day-modal-field-inputlike"
+            value={todoDraft}
+            onChange={(event) => setTodoDraft(event.target.value)}
+            placeholder="הוסף משימה חדשה לסגירה"
+          />
+          <Button variant="primary" onClick={addTodo}>הוסף</Button>
+        </div>
+        <div className="task-list">
+          {visibleTodos.length ? visibleTodos.map((task) => (
+            <div key={task.text} className={`task-item ${task.done ? "done" : ""} grid-task-item`}>
+              <button type="button" className="task-status" onClick={() => toggleTodo(task.text, task.done)} aria-label={task.done ? "פתח משימה מחדש" : "סמן משימה כבוצעה"} />
+              <div className="grid-task-main">
+                {editingTodoText === task.text ? (
+                  <div className="grid-task-edit">
+                    <input
+                      className="day-modal-field-inputlike"
+                      value={editingTodoValue}
+                      onChange={(event) => setEditingTodoValue(event.target.value)}
+                    />
+                    <div className="day-modal-actions">
+                      <Button variant="primary" size="sm" onClick={saveTodoEdit}>שמור</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setEditingTodoText(null)}>בטל</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="task-copy">{task.text}</div>
+                    <div className="grid-task-actions">
+                      <Button variant="ghost" size="sm" onClick={() => beginEditTodo(task.text)}>ערוך</Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteTodo(task.text)}>מחק</Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )) : (
+            <div className="attachments-empty">אין כרגע משימות פתוחות לסגירה.</div>
+          )}
+        </div>
       </section>
 
       <section className="grid-view-board">

@@ -1654,6 +1654,49 @@ a {
   line-height: 1.5;
 }
 
+.grid-tasks-card {
+  display: grid;
+  gap: 14px;
+}
+
+.grid-task-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.day-modal-field-inputlike {
+  width: 100%;
+  border: 1px solid rgba(38, 77, 91, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 12px 14px;
+  color: var(--text);
+}
+
+.day-modal-field-inputlike:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: rgba(42, 166, 161, 0.28);
+}
+
+.grid-task-item {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.grid-task-main,
+.grid-task-edit {
+  display: grid;
+  gap: 8px;
+}
+
+.grid-task-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 1180px) {
   .hero-grid,
   .workspace,
@@ -1680,6 +1723,10 @@ a {
   }
 
   .trip-manager-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-task-compose {
     grid-template-columns: 1fr;
   }
 
