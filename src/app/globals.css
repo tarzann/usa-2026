@@ -1571,6 +1571,89 @@ a {
   margin-bottom: 6px;
 }
 
+.grid-fab-wrap {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 90;
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+}
+
+.grid-fab-menu {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.grid-fab-option {
+  min-height: 42px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(244, 249, 250, 0.92);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+  text-align: right;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.grid-fab {
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+  color: white;
+  box-shadow: 0 18px 34px rgba(22, 129, 125, 0.26);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.grid-fab.open {
+  transform: rotate(45deg);
+}
+
+.trip-manager-modal {
+  width: min(1100px, 100%);
+}
+
+.trip-manager-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.trip-manager-list {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.trip-manager-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(38, 77, 91, 0.08);
+  text-align: right;
+}
+
+.trip-manager-item.active {
+  border-color: rgba(42, 166, 161, 0.24);
+  background: rgba(233, 247, 246, 0.96);
+}
+
+.trip-manager-item span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 @media (max-width: 1180px) {
   .hero-grid,
   .workspace,
@@ -1594,6 +1677,10 @@ a {
 
   .grid-view-hero {
     flex-direction: column;
+  }
+
+  .trip-manager-grid {
+    grid-template-columns: 1fr;
   }
 
   .day-modal-editor-grid.two-cols {

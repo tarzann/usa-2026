@@ -57,18 +57,17 @@ type DayHotelForm = {
   address: string;
   phone: string;
   confirmation: string;
+  checkIn: string;
   checkOut: string;
 };
 
-type GridEditTab = "general" | "location" | "flight" | "hotel" | "car";
+type GridEditTab = "general" | "location";
+type TripManagerType = "flight" | "hotel" | "car";
 
 const LOCAL_STORAGE_KEY = "trip-planner-data-v1";
 const gridEditTabs: Array<{ id: GridEditTab; label: string; emoji: string }> = [
   { id: "general", label: "יום", emoji: "🗓️" },
   { id: "location", label: "מיקום", emoji: "📍" },
-  { id: "flight", label: "טיסה", emoji: "✈️" },
-  { id: "hotel", label: "מלון", emoji: "🏨" },
-  { id: "car", label: "רכב", emoji: "🚗" },
 ];
 
 function formatGridDayLabel(date: string, dayName: string) {
@@ -142,6 +141,7 @@ function buildHotelForm(hotel: Hotel | undefined, date: string): DayHotelForm {
     address: hotel?.address || "",
     phone: hotel?.phone || "",
     confirmation: hotel?.confirmation || "",
+    checkIn: hotel?.checkIn || date,
     checkOut: hotel?.checkOut || shiftIsoDate(date, 1),
   };
 }
@@ -262,6 +262,11 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<DayAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [isFabOpen, setIsFabOpen] = useState(false);
+  const [tripManagerType, setTripManagerType] = useState<TripManagerType | null>(null);
+  const [editingFlightIndex, setEditingFlightIndex] = useState<number | null>(null);
+  const [editingHotelIndex, setEditingHotelIndex] = useState<number | null>(null);
+  const [editingCarIndex, setEditingCarIndex] = useState<number | null>(null);
   const [activeEditTab, setActiveEditTab] = useState<GridEditTab>("general");
   const [titleForm, setTitleForm] = useState("");
   const [summaryForm, setSummaryForm] = useState("");
@@ -280,7 +285,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     arrivalTime: "",
     confirmation: "",
   });
-  const [hotelForm, setHotelForm] = useState<DayHotelForm>({ name: "", location: "", address: "", phone: "", confirmation: "", checkOut: "" });
+  const [hotelForm, setHotelForm] = useState<DayHotelForm>({ name: "", location: "", address: "", phone: "", confirmation: "", checkIn: "", checkOut: "" });
   const [swapTargetDate, setSwapTargetDate] = useState("");
 
   const days = useMemo(() => buildTripDays(currentTripData), [currentTripData]);
@@ -295,6 +300,60 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     setAttachments([]);
     setAttachmentsLoading(false);
     setActiveEditTab("general");
+  }
+
+  function openTripManager(type: TripManagerType) {
+    setTripManagerType(type);
+    setIsFabOpen(false);
+    setEditingFlightIndex(null);
+    setEditingHotelIndex(null);
+    setEditingCarIndex(null);
+
+    if (type === "flight") {
+      setFlightForm({
+        label: "",
+        airline: "",
+        from: "",
+        stops: "",
+        to: "",
+        departureDate: activeDay?.date || currentTripData.startDate,
+        departureTime: "",
+        arrivalDate: activeDay?.date || currentTripData.startDate,
+        arrivalTime: "",
+        confirmation: "",
+      });
+    }
+
+    if (type === "hotel") {
+      setHotelForm({
+        name: "",
+        location: "",
+        address: "",
+        phone: "",
+        confirmation: "",
+        checkIn: activeDay?.date || currentTripData.startDate,
+        checkOut: shiftIsoDate(activeDay?.date || currentTripData.startDate, 1),
+      });
+    }
+
+    if (type === "car") {
+      setCarForm({
+        startDate: activeDay?.date || currentTripData.startDate,
+        endDate: activeDay?.date || currentTripData.startDate,
+        provider: "",
+        pickup: "",
+        dropoff: "",
+        confirmation: "",
+        notes: "",
+      });
+    }
+  }
+
+  function closeTripManager() {
+    setTripManagerType(null);
+    setEditingFlightIndex(null);
+    setEditingHotelIndex(null);
+    setEditingCarIndex(null);
   }
 
   function syncEditorState(day: TripDay, tripData: TripData) {
@@ -314,6 +373,15 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentTripData));
   }, [currentTripData]);
+
+  function commitTripData(nextTripData: TripData) {
+    const sanitized = sanitizeTripData(nextTripData);
+    setCurrentTripData(sanitized);
+    if (activeDay) {
+      const nextDay = buildTripDays(sanitized).find((day) => day.date === activeDay.date);
+      if (nextDay) syncEditorState(nextDay, sanitized);
+    }
+  }
 
   useEffect(() => {
     if (!activeDay) return;
@@ -346,10 +414,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
 
   function applyDirectUpdates(updates: TripUpdateAction[]) {
     if (!updates.length) return;
-    const nextTripData = applyTripUpdates(currentTripData, updates);
-    setCurrentTripData(nextTripData);
-    const nextDay = buildTripDays(nextTripData).find((day) => day.date === activeDay?.date);
-    if (nextDay) syncEditorState(nextDay, nextTripData);
+    commitTripData(applyTripUpdates(currentTripData, updates));
   }
 
   function saveGeneral() {
@@ -385,102 +450,6 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     applyDirectUpdates([{ type: "clear_location", date: activeDay.date }]);
   }
 
-  function saveFlight() {
-    if (!activeDay || !flightForm.label.trim() || !flightForm.from.trim() || !flightForm.to.trim()) return;
-    const existingFlight = activeDay.flights[0];
-    const details = formatFlightDetails(flightForm);
-    applyDirectUpdates([existingFlight
-      ? {
-          type: "update_flight",
-          date: existingFlight.date,
-          label: existingFlight.label,
-          nextDate: flightForm.departureDate && flightForm.departureDate !== existingFlight.date ? flightForm.departureDate : undefined,
-          nextLabel: flightForm.label.trim() !== existingFlight.label ? flightForm.label.trim() : undefined,
-          details,
-          booking: flightForm.confirmation.trim() || undefined,
-          confirmation: flightForm.confirmation.trim() || undefined,
-          airline: flightForm.airline.trim() || undefined,
-          from: flightForm.from.trim() || undefined,
-          stops: parseStops(flightForm.stops),
-          to: flightForm.to.trim() || undefined,
-          departureDate: flightForm.departureDate || undefined,
-          departureTime: flightForm.departureTime.trim() || undefined,
-          arrivalDate: flightForm.arrivalDate || undefined,
-          arrivalTime: flightForm.arrivalTime.trim() || undefined,
-        }
-      : {
-          type: "add_flight",
-          date: flightForm.departureDate || activeDay.date,
-          label: flightForm.label.trim(),
-          details,
-          booking: flightForm.confirmation.trim() || undefined,
-          confirmation: flightForm.confirmation.trim() || undefined,
-          airline: flightForm.airline.trim() || undefined,
-          from: flightForm.from.trim() || undefined,
-          stops: parseStops(flightForm.stops),
-          to: flightForm.to.trim() || undefined,
-          departureDate: flightForm.departureDate || activeDay.date,
-          departureTime: flightForm.departureTime.trim() || undefined,
-          arrivalDate: flightForm.arrivalDate || undefined,
-          arrivalTime: flightForm.arrivalTime.trim() || undefined,
-        }]);
-  }
-
-  function removeFlight() {
-    if (!activeDay?.flights[0]) return;
-    applyDirectUpdates([{ type: "delete_flight", date: activeDay.flights[0].date, label: activeDay.flights[0].label }]);
-  }
-
-  function saveHotel() {
-    if (!activeDay || !hotelForm.name.trim() || !hotelForm.location.trim() || !hotelForm.address.trim()) return;
-    const existingHotel = activeDay.hotels[0];
-    applyDirectUpdates([existingHotel
-      ? {
-          type: "update_hotel",
-          name: existingHotel.name,
-          nextName: hotelForm.name.trim() !== existingHotel.name ? hotelForm.name.trim() : undefined,
-          address: hotelForm.address.trim(),
-          phone: hotelForm.phone.trim() || undefined,
-          confirmation: hotelForm.confirmation.trim() || undefined,
-          location: hotelForm.location.trim(),
-        }
-      : {
-          type: "add_hotel",
-          name: hotelForm.name.trim(),
-          location: hotelForm.location.trim(),
-          checkIn: activeDay.date,
-          checkOut: hotelForm.checkOut || shiftIsoDate(activeDay.date, 1),
-          address: hotelForm.address.trim(),
-          phone: hotelForm.phone.trim() || undefined,
-          confirmation: hotelForm.confirmation.trim() || undefined,
-        }]);
-  }
-
-  function removeHotel() {
-    if (!activeDay?.hotels[0]) return;
-    applyDirectUpdates([{ type: "delete_hotel", name: activeDay.hotels[0].name, checkIn: activeDay.hotels[0].checkIn }]);
-  }
-
-  function saveCar() {
-    if (!activeDay || !Object.values(carForm).some((value) => value.trim())) return;
-    applyDirectUpdates([{
-      type: "update_car",
-      date: activeDay.date,
-      startDate: carForm.startDate || activeDay.date,
-      endDate: carForm.endDate || carForm.startDate || activeDay.date,
-      provider: carForm.provider.trim() || undefined,
-      pickup: carForm.pickup.trim() || undefined,
-      dropoff: carForm.dropoff.trim() || undefined,
-      confirmation: carForm.confirmation.trim() || undefined,
-      notes: carForm.notes.trim() || undefined,
-    }]);
-  }
-
-  function removeCar() {
-    if (!activeDay) return;
-    applyDirectUpdates([{ type: "clear_car", date: activeDay.date }]);
-  }
-
   function removeEvent(label: string) {
     if (!activeDay) return;
     applyDirectUpdates([{ type: "delete_event", date: activeDay.date, label }]);
@@ -489,6 +458,130 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
   function swapDayContent() {
     if (!activeDay || !swapTargetDate || swapTargetDate === activeDay.date) return;
     applyDirectUpdates([{ type: "swap_day_content", fromDate: activeDay.date, toDate: swapTargetDate }]);
+  }
+
+  function beginEditFlight(index: number) {
+    const flight = currentTripData.flights[index];
+    if (!flight) return;
+    setEditingFlightIndex(index);
+    setFlightForm(buildFlightForm(flight));
+    setTripManagerType("flight");
+  }
+
+  function saveTripFlight() {
+    if (!flightForm.label.trim() || !flightForm.from.trim() || !flightForm.to.trim()) return;
+    const details = formatFlightDetails(flightForm);
+    const nextFlights = [...currentTripData.flights];
+    const nextFlight: Flight = {
+      date: flightForm.departureDate || currentTripData.startDate,
+      label: flightForm.label.trim(),
+      details,
+      booking: flightForm.confirmation.trim() || undefined,
+      confirmation: flightForm.confirmation.trim() || undefined,
+      airline: flightForm.airline.trim() || undefined,
+      from: flightForm.from.trim(),
+      stops: parseStops(flightForm.stops),
+      to: flightForm.to.trim(),
+      departureDate: flightForm.departureDate || undefined,
+      departureTime: flightForm.departureTime.trim() || undefined,
+      arrivalDate: flightForm.arrivalDate || undefined,
+      arrivalTime: flightForm.arrivalTime.trim() || undefined,
+    };
+
+    if (editingFlightIndex !== null && nextFlights[editingFlightIndex]) {
+      nextFlights[editingFlightIndex] = nextFlight;
+    } else {
+      nextFlights.push(nextFlight);
+    }
+
+    commitTripData({ ...currentTripData, flights: nextFlights });
+    closeTripManager();
+  }
+
+  function deleteTripFlight(index: number) {
+    commitTripData({
+      ...currentTripData,
+      flights: currentTripData.flights.filter((_, currentIndex) => currentIndex !== index),
+    });
+    if (editingFlightIndex === index) closeTripManager();
+  }
+
+  function beginEditHotel(index: number) {
+    const hotel = currentTripData.hotels[index];
+    if (!hotel) return;
+    setEditingHotelIndex(index);
+    setHotelForm(buildHotelForm(hotel, hotel.checkIn));
+    setTripManagerType("hotel");
+  }
+
+  function saveTripHotel() {
+    if (!hotelForm.name.trim() || !hotelForm.location.trim() || !hotelForm.address.trim() || !hotelForm.checkIn || !hotelForm.checkOut) return;
+    const nextHotels = [...currentTripData.hotels];
+    const nextHotel: Hotel = {
+      name: hotelForm.name.trim(),
+      location: hotelForm.location.trim(),
+      address: hotelForm.address.trim(),
+      phone: hotelForm.phone.trim() || undefined,
+      confirmation: hotelForm.confirmation.trim() || undefined,
+      checkIn: hotelForm.checkIn,
+      checkOut: hotelForm.checkOut,
+    };
+
+    if (editingHotelIndex !== null && nextHotels[editingHotelIndex]) {
+      nextHotels[editingHotelIndex] = nextHotel;
+    } else {
+      nextHotels.push(nextHotel);
+    }
+
+    commitTripData({ ...currentTripData, hotels: nextHotels });
+    closeTripManager();
+  }
+
+  function deleteTripHotel(index: number) {
+    commitTripData({
+      ...currentTripData,
+      hotels: currentTripData.hotels.filter((_, currentIndex) => currentIndex !== index),
+    });
+    if (editingHotelIndex === index) closeTripManager();
+  }
+
+  function beginEditCar(index: number) {
+    const car = currentTripData.cars?.[index];
+    if (!car) return;
+    setEditingCarIndex(index);
+    setCarForm(buildCarForm(car));
+    setTripManagerType("car");
+  }
+
+  function saveTripCar() {
+    if (!carForm.provider.trim() || !carForm.startDate || !carForm.endDate) return;
+    const nextCars = [...(currentTripData.cars ?? [])];
+    const nextCar: DayCar = {
+      startDate: carForm.startDate,
+      endDate: carForm.endDate,
+      provider: carForm.provider.trim(),
+      pickup: carForm.pickup.trim() || undefined,
+      dropoff: carForm.dropoff.trim() || undefined,
+      confirmation: carForm.confirmation.trim() || undefined,
+      notes: carForm.notes.trim() || undefined,
+    };
+
+    if (editingCarIndex !== null && nextCars[editingCarIndex]) {
+      nextCars[editingCarIndex] = nextCar;
+    } else {
+      nextCars.push(nextCar);
+    }
+
+    commitTripData({ ...currentTripData, cars: nextCars });
+    closeTripManager();
+  }
+
+  function deleteTripCar(index: number) {
+    commitTripData({
+      ...currentTripData,
+      cars: (currentTripData.cars ?? []).filter((_, currentIndex) => currentIndex !== index),
+    });
+    if (editingCarIndex === index) closeTripManager();
   }
 
   return (
@@ -554,9 +647,9 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             </div>
 
             <section className="day-modal-quick-links">
-              <Button variant="glass" size="sm" onClick={() => setActiveEditTab("flight")}>ערוך טיסה</Button>
-              <Button variant="glass" size="sm" onClick={() => setActiveEditTab("hotel")}>ערוך מלון</Button>
-              <Button variant="glass" size="sm" onClick={() => setActiveEditTab("car")}>ערוך רכב</Button>
+              <Button variant="glass" size="sm" onClick={() => openTripManager("flight")}>ניהול טיסות</Button>
+              <Button variant="glass" size="sm" onClick={() => openTripManager("hotel")}>ניהול מלונות</Button>
+              <Button variant="glass" size="sm" onClick={() => openTripManager("car")}>ניהול רכבים</Button>
               <Button variant="glass" size="sm" onClick={() => setActiveEditTab("location")}>ערוך מיקום</Button>
             </section>
 
@@ -664,131 +757,13 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
                 </div>
               ) : null}
 
-              {activeEditTab === "flight" ? (
-                <div className="day-modal-editor-grid two-cols">
-                  <label className="day-modal-field">
-                    <span>כותרת טיסה</span>
-                    <input value={flightForm.label} onChange={(event) => setFlightForm((current) => ({ ...current, label: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>חברת תעופה</span>
-                    <input value={flightForm.airline} onChange={(event) => setFlightForm((current) => ({ ...current, airline: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>מ־</span>
-                    <input value={flightForm.from} onChange={(event) => setFlightForm((current) => ({ ...current, from: event.target.value }))} placeholder="TLV" />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>אל</span>
-                    <input value={flightForm.to} onChange={(event) => setFlightForm((current) => ({ ...current, to: event.target.value }))} placeholder="JFK" />
-                  </label>
-                  <label className="day-modal-field field-span-2">
-                    <span>עצירות ביניים</span>
-                    <input value={flightForm.stops} onChange={(event) => setFlightForm((current) => ({ ...current, stops: event.target.value }))} placeholder="למשל: ZRH, FRA" />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>תאריך המראה</span>
-                    <input type="date" value={flightForm.departureDate} onChange={(event) => setFlightForm((current) => ({ ...current, departureDate: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>שעת המראה</span>
-                    <input type="time" value={flightForm.departureTime} onChange={(event) => setFlightForm((current) => ({ ...current, departureTime: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>תאריך נחיתה</span>
-                    <input type="date" value={flightForm.arrivalDate} onChange={(event) => setFlightForm((current) => ({ ...current, arrivalDate: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>שעת נחיתה</span>
-                    <input type="time" value={flightForm.arrivalTime} onChange={(event) => setFlightForm((current) => ({ ...current, arrivalTime: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field field-span-2">
-                    <span>מספר אישור</span>
-                    <input value={flightForm.confirmation} onChange={(event) => setFlightForm((current) => ({ ...current, confirmation: event.target.value }))} />
-                  </label>
-                  <div className="day-modal-actions">
-                    <Button variant="primary" onClick={saveFlight}>שמור טיסה</Button>
-                    <Button variant="ghost" onClick={removeFlight}>הסר טיסה</Button>
-                  </div>
-                </div>
-              ) : null}
-
-              {activeEditTab === "hotel" ? (
-                <div className="day-modal-editor-grid two-cols">
-                  <label className="day-modal-field">
-                    <span>שם מלון</span>
-                    <input value={hotelForm.name} onChange={(event) => setHotelForm((current) => ({ ...current, name: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>מיקום</span>
-                    <input value={hotelForm.location} onChange={(event) => setHotelForm((current) => ({ ...current, location: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field field-span-2">
-                    <span>כתובת</span>
-                    <input value={hotelForm.address} onChange={(event) => setHotelForm((current) => ({ ...current, address: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>טלפון</span>
-                    <input value={hotelForm.phone} onChange={(event) => setHotelForm((current) => ({ ...current, phone: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>אישור</span>
-                    <input value={hotelForm.confirmation} onChange={(event) => setHotelForm((current) => ({ ...current, confirmation: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>תאריך Checkout</span>
-                    <input type="date" value={hotelForm.checkOut} onChange={(event) => setHotelForm((current) => ({ ...current, checkOut: event.target.value }))} />
-                  </label>
-                  <div className="day-modal-actions">
-                    <Button variant="primary" onClick={saveHotel}>שמור מלון</Button>
-                    <Button variant="ghost" onClick={removeHotel}>הסר מלון</Button>
-                  </div>
-                </div>
-              ) : null}
-
-              {activeEditTab === "car" ? (
-                <div className="day-modal-editor-grid two-cols">
-                  <label className="day-modal-field">
-                    <span>מתאריך</span>
-                    <input type="date" value={carForm.startDate} onChange={(event) => setCarForm((current) => ({ ...current, startDate: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>עד תאריך</span>
-                    <input type="date" value={carForm.endDate} onChange={(event) => setCarForm((current) => ({ ...current, endDate: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>חברת השכרה</span>
-                    <input value={carForm.provider} onChange={(event) => setCarForm((current) => ({ ...current, provider: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>מיקום לקיחה</span>
-                    <input value={carForm.pickup} onChange={(event) => setCarForm((current) => ({ ...current, pickup: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>מיקום החזרה</span>
-                    <input value={carForm.dropoff} onChange={(event) => setCarForm((current) => ({ ...current, dropoff: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field">
-                    <span>מספר אישור</span>
-                    <input value={carForm.confirmation} onChange={(event) => setCarForm((current) => ({ ...current, confirmation: event.target.value }))} />
-                  </label>
-                  <label className="day-modal-field field-span-2">
-                    <span>הערות</span>
-                    <textarea rows={3} value={carForm.notes} onChange={(event) => setCarForm((current) => ({ ...current, notes: event.target.value }))} />
-                  </label>
-                  <div className="day-modal-actions">
-                    <Button variant="primary" onClick={saveCar}>שמור רכב</Button>
-                    <Button variant="ghost" onClick={removeCar}>הסר רכב</Button>
-                  </div>
-                </div>
-              ) : null}
             </section>
 
             {activeDay.flights.length ? (
               <section className="day-modal-section">
                 <div className="day-modal-section-head">
                   <h3>טיסות</h3>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveEditTab("flight")}>ערוך</Button>
+                  <Button variant="ghost" size="sm" onClick={() => openTripManager("flight")}>ערוך</Button>
                 </div>
                 <div className="day-modal-list">
                   {activeDay.flights.map((flight) => (
@@ -807,7 +782,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <section className="day-modal-section">
                 <div className="day-modal-section-head">
                   <h3>מלון</h3>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveEditTab("hotel")}>ערוך</Button>
+                  <Button variant="ghost" size="sm" onClick={() => openTripManager("hotel")}>ערוך</Button>
                 </div>
                 <div className="day-modal-list">
                   {activeDay.hotels.map((hotel) => (
@@ -827,7 +802,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <section className="day-modal-section">
                 <div className="day-modal-section-head">
                   <h3>רכב</h3>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveEditTab("car")}>ערוך</Button>
+                  <Button variant="ghost" size="sm" onClick={() => openTripManager("car")}>ערוך</Button>
                 </div>
                 <article className="day-modal-item">
                   <strong>🚗 {activeDay.car.provider || "רכב ליום"}</strong>
@@ -873,6 +848,196 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
                 )}
               </div>
             </section>
+          </section>
+        </div>
+      ) : null}
+
+      <div className="grid-fab-wrap">
+        {isFabOpen ? (
+          <div className="grid-fab-menu">
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("flight")}>✈️ הוסף טיסה</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("hotel")}>🏨 הוסף מלון</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("car")}>🚗 הוסף רכב</button>
+          </div>
+        ) : null}
+        <button
+          type="button"
+          className={`grid-fab ${isFabOpen ? "open" : ""}`}
+          onClick={() => setIsFabOpen((current) => !current)}
+          aria-label={isFabOpen ? "סגור תפריט הוספה" : "פתח תפריט הוספה"}
+        >
+          +
+        </button>
+      </div>
+
+      {tripManagerType ? (
+        <div className="day-modal-overlay" onClick={closeTripManager}>
+          <section className="day-modal trip-manager-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="day-modal-head">
+              <div>
+                <div className="section-title">ניהול ברמת הטיול</div>
+                <h2>
+                  {tripManagerType === "flight" ? "טיסות" : tripManagerType === "hotel" ? "מלונות" : "רכבים"}
+                </h2>
+                <p>כאן מנהלים את הלוגיסטיקה של כל הטיול, בלי קשר ליום אחד ספציפי.</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={closeTripManager} aria-label="סגור ניהול טיול">
+                ✕
+              </Button>
+            </div>
+
+            {tripManagerType === "flight" ? (
+              <div className="trip-manager-grid">
+                <div className="trip-manager-list">
+                  {currentTripData.flights.map((flight, index) => (
+                    <button key={`${flight.date}-${flight.label}-${index}`} type="button" className={`trip-manager-item ${editingFlightIndex === index ? "active" : ""}`} onClick={() => beginEditFlight(index)}>
+                      <strong>{flight.label}</strong>
+                      <span>{[flight.airline, [flight.from, ...(flight.stops ?? []), flight.to].filter(Boolean).join(" → ")].filter(Boolean).join(" · ") || flight.details}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="day-modal-editor-grid two-cols">
+                  <label className="day-modal-field">
+                    <span>כותרת טיסה</span>
+                    <input value={flightForm.label} onChange={(event) => setFlightForm((current) => ({ ...current, label: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>חברת תעופה</span>
+                    <input value={flightForm.airline} onChange={(event) => setFlightForm((current) => ({ ...current, airline: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>מ־</span>
+                    <input value={flightForm.from} onChange={(event) => setFlightForm((current) => ({ ...current, from: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>אל</span>
+                    <input value={flightForm.to} onChange={(event) => setFlightForm((current) => ({ ...current, to: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field field-span-2">
+                    <span>עצירות ביניים</span>
+                    <input value={flightForm.stops} onChange={(event) => setFlightForm((current) => ({ ...current, stops: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>תאריך המראה</span>
+                    <input type="date" value={flightForm.departureDate} onChange={(event) => setFlightForm((current) => ({ ...current, departureDate: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>שעת המראה</span>
+                    <input type="time" value={flightForm.departureTime} onChange={(event) => setFlightForm((current) => ({ ...current, departureTime: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>תאריך נחיתה</span>
+                    <input type="date" value={flightForm.arrivalDate} onChange={(event) => setFlightForm((current) => ({ ...current, arrivalDate: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>שעת נחיתה</span>
+                    <input type="time" value={flightForm.arrivalTime} onChange={(event) => setFlightForm((current) => ({ ...current, arrivalTime: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field field-span-2">
+                    <span>מספר אישור</span>
+                    <input value={flightForm.confirmation} onChange={(event) => setFlightForm((current) => ({ ...current, confirmation: event.target.value }))} />
+                  </label>
+                  <div className="day-modal-actions">
+                    <Button variant="primary" onClick={saveTripFlight}>{editingFlightIndex !== null ? "שמור שינויים" : "הוסף טיסה"}</Button>
+                    {editingFlightIndex !== null ? <Button variant="ghost" onClick={() => deleteTripFlight(editingFlightIndex)}>מחק</Button> : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {tripManagerType === "hotel" ? (
+              <div className="trip-manager-grid">
+                <div className="trip-manager-list">
+                  {currentTripData.hotels.map((hotel, index) => (
+                    <button key={`${hotel.checkIn}-${hotel.name}-${index}`} type="button" className={`trip-manager-item ${editingHotelIndex === index ? "active" : ""}`} onClick={() => beginEditHotel(index)}>
+                      <strong>{hotel.name}</strong>
+                      <span>{hotel.location} · {formatDate(hotel.checkIn)} - {formatDate(shiftIsoDate(hotel.checkOut, -1))}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="day-modal-editor-grid two-cols">
+                  <label className="day-modal-field">
+                    <span>שם מלון</span>
+                    <input value={hotelForm.name} onChange={(event) => setHotelForm((current) => ({ ...current, name: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>מיקום</span>
+                    <input value={hotelForm.location} onChange={(event) => setHotelForm((current) => ({ ...current, location: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>Check-in</span>
+                    <input type="date" value={hotelForm.checkIn} onChange={(event) => setHotelForm((current) => ({ ...current, checkIn: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>Check-out</span>
+                    <input type="date" value={hotelForm.checkOut} onChange={(event) => setHotelForm((current) => ({ ...current, checkOut: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field field-span-2">
+                    <span>כתובת</span>
+                    <input value={hotelForm.address} onChange={(event) => setHotelForm((current) => ({ ...current, address: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>טלפון</span>
+                    <input value={hotelForm.phone} onChange={(event) => setHotelForm((current) => ({ ...current, phone: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>מספר אישור</span>
+                    <input value={hotelForm.confirmation} onChange={(event) => setHotelForm((current) => ({ ...current, confirmation: event.target.value }))} />
+                  </label>
+                  <div className="day-modal-actions">
+                    <Button variant="primary" onClick={saveTripHotel}>{editingHotelIndex !== null ? "שמור שינויים" : "הוסף מלון"}</Button>
+                    {editingHotelIndex !== null ? <Button variant="ghost" onClick={() => deleteTripHotel(editingHotelIndex)}>מחק</Button> : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {tripManagerType === "car" ? (
+              <div className="trip-manager-grid">
+                <div className="trip-manager-list">
+                  {(currentTripData.cars ?? []).map((car, index) => (
+                    <button key={`${car.startDate}-${car.provider}-${index}`} type="button" className={`trip-manager-item ${editingCarIndex === index ? "active" : ""}`} onClick={() => beginEditCar(index)}>
+                      <strong>{car.provider || "רכב"}</strong>
+                      <span>{[formatCarDateRange(car), car.pickup, car.dropoff].filter(Boolean).join(" · ")}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="day-modal-editor-grid two-cols">
+                  <label className="day-modal-field">
+                    <span>מתאריך</span>
+                    <input type="date" value={carForm.startDate} onChange={(event) => setCarForm((current) => ({ ...current, startDate: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>עד תאריך</span>
+                    <input type="date" value={carForm.endDate} onChange={(event) => setCarForm((current) => ({ ...current, endDate: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>חברת השכרה</span>
+                    <input value={carForm.provider} onChange={(event) => setCarForm((current) => ({ ...current, provider: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>מיקום לקיחה</span>
+                    <input value={carForm.pickup} onChange={(event) => setCarForm((current) => ({ ...current, pickup: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>מיקום החזרה</span>
+                    <input value={carForm.dropoff} onChange={(event) => setCarForm((current) => ({ ...current, dropoff: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>מספר אישור</span>
+                    <input value={carForm.confirmation} onChange={(event) => setCarForm((current) => ({ ...current, confirmation: event.target.value }))} />
+                  </label>
+                  <label className="day-modal-field field-span-2">
+                    <span>הערות</span>
+                    <textarea rows={3} value={carForm.notes} onChange={(event) => setCarForm((current) => ({ ...current, notes: event.target.value }))} />
+                  </label>
+                  <div className="day-modal-actions">
+                    <Button variant="primary" onClick={saveTripCar}>{editingCarIndex !== null ? "שמור שינויים" : "הוסף רכב"}</Button>
+                    {editingCarIndex !== null ? <Button variant="ghost" onClick={() => deleteTripCar(editingCarIndex)}>מחק</Button> : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </section>
         </div>
       ) : null}
