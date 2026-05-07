@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   applyTripUpdates,
   buildTripDays,
+  type DestinationHero,
   formatDate,
   sanitizeTripData,
   type DayCar,
@@ -16,6 +17,7 @@ import {
   type TripData,
   type TripDay,
   type TripUpdateAction,
+  type UploadedAsset,
 } from "@/lib/trip";
 import { type DayAttachment } from "@/lib/attachments";
 
@@ -70,11 +72,18 @@ type TripResourceForm = {
   file: TripResource["file"] | null;
 };
 
+type DestinationHeroForm = {
+  locationName: string;
+  url: string;
+  file: UploadedAsset | null;
+};
+
 type GridEditTab = "general" | "location";
-type TripManagerType = "flight" | "hotel" | "car" | "resource" | "todo";
+type TripManagerType = "flight" | "hotel" | "car" | "resource" | "todo" | "hero";
 
 const LOCAL_STORAGE_KEY = "trip-planner-data-v1";
 const GLOBAL_RESOURCES_KEY = "__trip_resources__";
+const GLOBAL_HERO_KEY = "__trip_hero__";
 const gridEditTabs: Array<{ id: GridEditTab; label: string; emoji: string }> = [
   { id: "general", label: "יום", emoji: "🗓️" },
   { id: "location", label: "מיקום", emoji: "📍" },
@@ -305,7 +314,20 @@ function getLocationImageQuery(day: TripDay) {
   return locationImageQueries[day.location.name] || [day.location.name, day.location.region];
 }
 
-function getDayHeroImage(day: TripDay) {
+function getDayHeroImage(day: TripDay, tripData: TripData) {
+  const heroOverride = tripData.destinationHeroes?.[day.location.name];
+  if (heroOverride?.file?.url) {
+    return {
+      src: heroOverride.file.url,
+      alt: `${day.location.name} hero`,
+    };
+  }
+  if (heroOverride?.url) {
+    return {
+      src: heroOverride.url,
+      alt: `${day.location.name} hero`,
+    };
+  }
   const query = getLocationImageQuery(day);
   return {
     src: buildPhotoUrl(query, `hero-${day.date}`, 1200, 700),
@@ -381,6 +403,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
   const [editingHotelIndex, setEditingHotelIndex] = useState<number | null>(null);
   const [editingCarIndex, setEditingCarIndex] = useState<number | null>(null);
   const [editingResourceIndex, setEditingResourceIndex] = useState<number | null>(null);
+  const [heroForm, setHeroForm] = useState<DestinationHeroForm>({ locationName: "", url: "", file: null });
   const [todoDraft, setTodoDraft] = useState("");
   const [editingTodoText, setEditingTodoText] = useState<string | null>(null);
   const [editingTodoValue, setEditingTodoValue] = useState("");
@@ -406,9 +429,15 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
   const [resourceForm, setResourceForm] = useState<TripResourceForm>({ title: "", content: "", url: "", file: null });
   const [resourceUploadError, setResourceUploadError] = useState("");
   const [isUploadingResourceFile, setIsUploadingResourceFile] = useState(false);
+  const [heroUploadError, setHeroUploadError] = useState("");
+  const [isUploadingHeroFile, setIsUploadingHeroFile] = useState(false);
   const [swapTargetDate, setSwapTargetDate] = useState("");
 
   const days = useMemo(() => buildTripDays(currentTripData), [currentTripData]);
+  const destinationOptions = useMemo(
+    () => [...new Set(days.map((day) => day.location.name))],
+    [days],
+  );
   const locationTagStyles = useMemo(
     () => buildLocationTagStyles(days.map((day) => day.location.name)),
     [days],
@@ -433,6 +462,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     setEditingCarIndex(null);
     setEditingResourceIndex(null);
     setResourceUploadError("");
+    setHeroUploadError("");
 
     if (type === "flight") {
       setFlightForm({
@@ -482,6 +512,16 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
       setEditingTodoText(null);
       setEditingTodoValue("");
     }
+
+    if (type === "hero") {
+      const locationName = activeDay?.location.name || destinationOptions[0] || "";
+      const currentHero = currentTripData.destinationHeroes?.[locationName];
+      setHeroForm({
+        locationName,
+        url: currentHero?.url || "",
+        file: currentHero?.file || null,
+      });
+    }
   }
 
   function closeTripManager() {
@@ -491,6 +531,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     setEditingCarIndex(null);
     setEditingResourceIndex(null);
     setResourceUploadError("");
+    setHeroUploadError("");
   }
 
   function syncEditorState(day: TripDay, tripData: TripData) {
@@ -822,6 +863,87 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     if (editingResourceIndex === index) closeTripManager();
   }
 
+  async function handleHeroFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingHeroFile(true);
+      setHeroUploadError("");
+      const formData = new FormData();
+      formData.append("dayDate", `${GLOBAL_HERO_KEY}-${heroForm.locationName}`);
+      formData.append("files", file);
+
+      const response = await fetch("/api/attachments", {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = (await response.json()) as { attachments?: DayAttachment[]; error?: string };
+      if (!response.ok) throw new Error(payload.error || "Upload failed");
+      const uploaded = payload.attachments?.[0];
+      if (!uploaded) throw new Error("לא התקבל קובץ hero.");
+
+      setHeroForm((current) => ({
+        ...current,
+        file: uploaded,
+      }));
+    } catch (error) {
+      setHeroUploadError(error instanceof Error ? error.message : "העלאת תמונת ה-hero נכשלה.");
+    } finally {
+      setIsUploadingHeroFile(false);
+      event.target.value = "";
+    }
+  }
+
+  async function removeHeroFile() {
+    if (!heroForm.file) return;
+    try {
+      const response = await fetch("/api/attachments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: heroForm.file.url }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Delete failed");
+      setHeroForm((current) => ({ ...current, file: null }));
+      setHeroUploadError("");
+    } catch (error) {
+      setHeroUploadError(error instanceof Error ? error.message : "מחיקת תמונת ה-hero נכשלה.");
+    }
+  }
+
+  function saveDestinationHero() {
+    if (!heroForm.locationName) return;
+    const nextHeroes: Record<string, DestinationHero> = {
+      ...(currentTripData.destinationHeroes ?? {}),
+      [heroForm.locationName]: {
+        url: heroForm.url.trim() || undefined,
+        file: heroForm.file || undefined,
+      },
+    };
+    commitTripData({ ...currentTripData, destinationHeroes: nextHeroes });
+    closeTripManager();
+  }
+
+  async function clearDestinationHero() {
+    if (!heroForm.locationName) return;
+    const existingHero = currentTripData.destinationHeroes?.[heroForm.locationName];
+    if (existingHero?.file?.url) {
+      await fetch("/api/attachments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: existingHero.file.url }),
+      }).catch(() => null);
+    }
+
+    const nextHeroes = { ...(currentTripData.destinationHeroes ?? {}) };
+    delete nextHeroes[heroForm.locationName];
+    commitTripData({ ...currentTripData, destinationHeroes: nextHeroes });
+    setHeroForm((current) => ({ ...current, url: "", file: null }));
+    closeTripManager();
+  }
+
   function addTodo() {
     const text = todoDraft.trim();
     if (!text) return;
@@ -915,7 +1037,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             }}
           >
             <div className="grid-day-hero">
-              <DayPhoto {...getDayHeroImage(day)} className="grid-day-hero-image" />
+              <DayPhoto {...getDayHeroImage(day, currentTripData)} className="grid-day-hero-image" />
               <div className="grid-day-hero-overlay" />
               <div className="grid-day-hero-copy">
                 <span className="grid-day-date">{formatGridDayLabel(day.date, day.dayName)}</span>
@@ -965,6 +1087,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             </section>
 
             <section className="day-modal-quick-links">
+              <Button variant="glass" size="sm" onClick={() => openTripManager("hero")}>תמונות יעד</Button>
               <Button variant="glass" size="sm" onClick={() => openTripManager("flight")}>ניהול טיסות</Button>
               <Button variant="glass" size="sm" onClick={() => openTripManager("hotel")}>ניהול מלונות</Button>
               <Button variant="glass" size="sm" onClick={() => openTripManager("car")}>ניהול רכבים</Button>
@@ -1177,6 +1300,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("flight")}>✈️ טיסות</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("car")}>🚗 רכב</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("hotel")}>🏨 מלונות</button>
+            <button type="button" className="grid-fab-option" onClick={() => openTripManager("hero")}>🖼️ תמונות יעד</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("resource")}>🔗 קבצים וקישורים</button>
             <button type="button" className="grid-fab-option" onClick={() => openTripManager("todo")}>✅ משימות פתוחות לסגירה</button>
           </div>
@@ -1204,6 +1328,8 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
                       ? "מלונות"
                       : tripManagerType === "car"
                         ? "רכבים"
+                        : tripManagerType === "hero"
+                          ? "תמונות יעד"
                         : tripManagerType === "resource"
                           ? "קבצים וקישורים"
                           : "משימות פתוחות לסגירה"}
@@ -1363,6 +1489,82 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
                   <div className="day-modal-actions">
                     <Button variant="primary" onClick={saveTripCar}>{editingCarIndex !== null ? "שמור שינויים" : "הוסף רכב"}</Button>
                     {editingCarIndex !== null ? <Button variant="ghost" onClick={() => deleteTripCar(editingCarIndex)}>מחק</Button> : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {tripManagerType === "hero" ? (
+              <div className="trip-manager-grid">
+                <div className="trip-manager-list">
+                  {destinationOptions.map((locationName) => {
+                    const hero = currentTripData.destinationHeroes?.[locationName];
+                    return (
+                      <button
+                        key={locationName}
+                        type="button"
+                        className={`trip-manager-item ${heroForm.locationName === locationName ? "active" : ""}`}
+                        onClick={() => setHeroForm({
+                          locationName,
+                          url: hero?.url || "",
+                          file: hero?.file || null,
+                        })}
+                      >
+                        <strong>{locationName}</strong>
+                        <span>{hero?.file?.name || hero?.url || "אין תמונת hero מותאמת"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="day-modal-editor-grid">
+                  <label className="day-modal-field">
+                    <span>יעד</span>
+                    <select
+                      value={heroForm.locationName}
+                      onChange={(event) => {
+                        const locationName = event.target.value;
+                        const hero = currentTripData.destinationHeroes?.[locationName];
+                        setHeroForm({
+                          locationName,
+                          url: hero?.url || "",
+                          file: hero?.file || null,
+                        });
+                      }}
+                    >
+                      {destinationOptions.map((locationName) => (
+                        <option key={locationName} value={locationName}>
+                          {locationName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="day-modal-field">
+                    <span>קישור לתמונת hero</span>
+                    <input value={heroForm.url} onChange={(event) => setHeroForm((current) => ({ ...current, url: event.target.value }))} placeholder="https://..." />
+                  </label>
+                  <label className="day-modal-field">
+                    <span>או העלאת קובץ</span>
+                    <input type="file" accept="image/*" onChange={handleHeroFileSelect} disabled={isUploadingHeroFile} />
+                  </label>
+                  {heroForm.file ? (
+                    <div className="resource-file-card">
+                      <div>
+                        <strong>{heroForm.file.name}</strong>
+                        <span>{heroForm.file.contentType || "תמונת hero"}</span>
+                      </div>
+                      <div className="day-modal-actions">
+                        <Button variant="ghost" size="sm" onClick={() => window.open(`/api/attachments/file?pathname=${encodeURIComponent(heroForm.file!.pathname)}`, "_blank", "noopener,noreferrer")}>פתח</Button>
+                        <Button variant="ghost" size="sm" onClick={removeHeroFile}>הסר קובץ</Button>
+                      </div>
+                    </div>
+                  ) : null}
+                  {heroUploadError ? <div className="attachments-error">{heroUploadError}</div> : null}
+                  <p className="day-modal-help">
+                    התמונה תחול אוטומטית על כל יום שהיעד הראשי שלו הוא {heroForm.locationName || "היעד שנבחר"}.
+                  </p>
+                  <div className="day-modal-actions">
+                    <Button variant="primary" onClick={saveDestinationHero}>שמור תמונת יעד</Button>
+                    <Button variant="ghost" onClick={clearDestinationHero}>נקה תמונה</Button>
                   </div>
                 </div>
               </div>

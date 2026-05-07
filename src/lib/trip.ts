@@ -50,18 +50,25 @@ export type Todo = {
   done: boolean;
 };
 
+export type UploadedAsset = {
+  url: string;
+  pathname: string;
+  size: number;
+  uploadedAt: string;
+  contentType: string;
+  name: string;
+};
+
 export type TripResource = {
   title: string;
   content?: string;
   url?: string;
-  file?: {
-    url: string;
-    pathname: string;
-    size: number;
-    uploadedAt: string;
-    contentType: string;
-    name: string;
-  };
+  file?: UploadedAsset;
+};
+
+export type DestinationHero = {
+  url?: string;
+  file?: UploadedAsset;
 };
 
 export type DayLocationOverride = {
@@ -100,6 +107,7 @@ export type TripData = {
   hotels: Hotel[];
   cars?: DayCar[];
   resources?: TripResource[];
+  destinationHeroes?: Record<string, DestinationHero>;
   todos: Todo[];
   dayOverrides?: Record<string, DayOverride>;
   skippedDates?: string[];
@@ -218,6 +226,7 @@ export function sanitizeTripData(data: TripData): TripData {
       return endDate >= data.startDate && startDate <= data.endDate;
     }),
     resources: data.resources ?? [],
+    destinationHeroes: data.destinationHeroes ?? {},
     dayOverrides: data.dayOverrides ?? {},
     skippedDates: (data.skippedDates ?? []).filter((date) => isDateInTrip(date, data)),
   };
@@ -235,6 +244,15 @@ export function applyTripUpdates(data: TripData, updates: TripUpdateAction[]) {
       ...resource,
       file: resource.file ? { ...resource.file } : undefined,
     })),
+    destinationHeroes: Object.fromEntries(
+      Object.entries(data.destinationHeroes ?? {}).map(([key, value]) => [
+        key,
+        {
+          ...value,
+          file: value.file ? { ...value.file } : undefined,
+        },
+      ]),
+    ),
     todos: data.todos.map((todo) => ({ ...todo })),
     dayOverrides: { ...(data.dayOverrides ?? {}) },
     skippedDates: [...(data.skippedDates ?? [])],
