@@ -324,18 +324,21 @@ function getDayHeroImage(day: TripDay, tripData: TripData) {
     return {
       src: buildPrivateFileUrl(heroOverride.file.pathname),
       alt: `${day.location.name} hero`,
+      isCustom: true,
     };
   }
   if (heroOverride?.url) {
     return {
       src: heroOverride.url,
       alt: `${day.location.name} hero`,
+      isCustom: true,
     };
   }
   const query = getLocationImageQuery(day);
   return {
     src: buildPhotoUrl(query, `hero-${day.date}`, 1200, 700),
     alt: `${day.location.name} hero`,
+    isCustom: false,
   };
 }
 
@@ -361,10 +364,12 @@ function DayPhoto({
   src,
   alt,
   className,
+  fit = "cover",
 }: {
   src: string;
   alt: string;
   className?: string;
+  fit?: "cover" | "contain";
 }) {
   const [failed, setFailed] = useState(false);
 
@@ -378,6 +383,7 @@ function DayPhoto({
       alt={alt}
       className={className}
       fill
+      style={{ objectFit: fit }}
       sizes={className?.includes("grid-day-hero-image") ? "(max-width: 760px) 100vw, 33vw" : "(max-width: 760px) 100vw, 33vw"}
       onError={() => setFailed(true)}
     />
@@ -447,6 +453,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
     [days],
   );
   const activeDay = openDate ? days.find((day) => day.date === openDate) ?? null : null;
+  const activeHeroImage = activeDay ? getDayHeroImage(activeDay, currentTripData) : null;
   const openTodos = useMemo(
     () => currentTripData.todos.filter((todo) => !todo.done),
     [currentTripData.todos],
@@ -1025,7 +1032,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             }}
           >
             <div className="grid-day-hero">
-              <DayPhoto {...getDayHeroImage(day, currentTripData)} className="grid-day-hero-image" />
+              <DayPhoto {...getDayHeroImage(day, currentTripData)} className="grid-day-hero-image" fit="cover" />
               <div className="grid-day-hero-overlay" />
               <div className="grid-day-hero-copy">
                 <span className="grid-day-date">{formatGridDayLabel(day.date, day.dayName)}</span>
@@ -1065,6 +1072,21 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <span className="chip">{activeDay.location.region}</span>
               <span className="chip">{activeDay.travelMode}</span>
             </div>
+
+            {activeHeroImage ? (
+              <section className="day-modal-hero">
+                <DayPhoto
+                  src={activeHeroImage.src}
+                  alt={activeHeroImage.alt}
+                  className="day-modal-hero-image"
+                  fit={activeHeroImage.isCustom ? "contain" : "cover"}
+                />
+                <div className="day-modal-hero-overlay" />
+                <div className="day-modal-hero-copy">
+                  <span className="chip" style={locationTagStyles[activeDay.location.name]}>🖼️ תמונת יעד</span>
+                </div>
+              </section>
+            ) : null}
 
             <section className="day-gallery">
               {getDayGalleryImages(activeDay).map((image) => (
