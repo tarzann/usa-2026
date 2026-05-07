@@ -553,6 +553,13 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
               <span className="chip">{activeDay.travelMode}</span>
             </div>
 
+            <section className="day-modal-quick-links">
+              <Button variant="glass" size="sm" onClick={() => setActiveEditTab("flight")}>ערוך טיסה</Button>
+              <Button variant="glass" size="sm" onClick={() => setActiveEditTab("hotel")}>ערוך מלון</Button>
+              <Button variant="glass" size="sm" onClick={() => setActiveEditTab("car")}>ערוך רכב</Button>
+              <Button variant="glass" size="sm" onClick={() => setActiveEditTab("location")}>ערוך מיקום</Button>
+            </section>
+
             <section className="day-modal-editor">
               <div className="day-modal-editor-head">
                 <h3>עריכת יום</h3>
@@ -779,12 +786,16 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
 
             {activeDay.flights.length ? (
               <section className="day-modal-section">
-                <h3>טיסות</h3>
+                <div className="day-modal-section-head">
+                  <h3>טיסות</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveEditTab("flight")}>ערוך</Button>
+                </div>
                 <div className="day-modal-list">
                   {activeDay.flights.map((flight) => (
-                    <article key={`${flight.date}-${flight.label}`} className="day-modal-item">
+                    <article key={`${flight.date}-${flight.label}`} className="day-modal-item logistics-card-compact">
                       <strong>✈️ {flight.label}</strong>
-                      <p>{flight.details}</p>
+                      <p>{[flight.airline, [flight.from, ...(flight.stops ?? []), flight.to].filter(Boolean).join(" → ")].filter(Boolean).join(" · ") || flight.details}</p>
+                      <p>{[[flight.departureDate ? formatDate(flight.departureDate) : "", flight.departureTime].filter(Boolean).join(" "), [flight.arrivalDate ? formatDate(flight.arrivalDate) : "", flight.arrivalTime].filter(Boolean).join(" ")].filter(Boolean).join(" → ")}</p>
                       {flight.confirmation || flight.booking ? <p>אישור: {flight.confirmation || flight.booking}</p> : null}
                     </article>
                   ))}
@@ -794,12 +805,18 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
 
             {activeDay.hotels.length ? (
               <section className="day-modal-section">
-                <h3>מלון</h3>
+                <div className="day-modal-section-head">
+                  <h3>מלון</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveEditTab("hotel")}>ערוך</Button>
+                </div>
                 <div className="day-modal-list">
                   {activeDay.hotels.map((hotel) => (
-                    <article key={`${hotel.name}-${hotel.checkIn}`} className="day-modal-item">
+                    <article key={`${hotel.name}-${hotel.checkIn}`} className="day-modal-item logistics-card-compact">
                       <strong>🏨 {hotel.name}</strong>
-                      <p>{hotel.location} · {hotel.address}</p>
+                      <p>{hotel.location}</p>
+                      <p>{hotel.address}</p>
+                      <p>{formatDate(hotel.checkIn)} → {formatDate(shiftIsoDate(hotel.checkOut, -1))}</p>
+                      {hotel.confirmation ? <p>אישור: {hotel.confirmation}</p> : null}
                     </article>
                   ))}
                 </div>
@@ -808,7 +825,10 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
 
             {activeDay.car ? (
               <section className="day-modal-section">
-                <h3>רכב</h3>
+                <div className="day-modal-section-head">
+                  <h3>רכב</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveEditTab("car")}>ערוך</Button>
+                </div>
                 <article className="day-modal-item">
                   <strong>🚗 {activeDay.car.provider || "רכב ליום"}</strong>
                   <p>{[formatCarDateRange(activeDay.car), activeDay.car.pickup, activeDay.car.dropoff, activeDay.car.notes].filter(Boolean).join(" · ") || "יש רכב משויך ליום הזה."}</p>
