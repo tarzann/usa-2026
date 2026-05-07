@@ -1358,6 +1358,7 @@ a {
   align-items: center;
   padding: 5px 10px;
   border-radius: 999px;
+  border: 1px solid transparent;
   background: rgba(42, 166, 161, 0.1);
   color: var(--brand-strong);
   font-size: 0.78rem;

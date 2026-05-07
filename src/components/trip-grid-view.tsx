@@ -12,6 +12,33 @@ type TripGridViewProps = {
 
 const LOCAL_STORAGE_KEY = "trip-planner-data-v1";
 
+function formatGridDayLabel(date: string, dayName: string) {
+  const cleanDayName = dayName.replace(/^יום\s+/, "");
+  return `${formatDate(date)} - ${cleanDayName}`;
+}
+
+function getLocationTagStyle(locationName: string) {
+  const palettes = [
+    { background: "#e7f7f4", color: "#0f766e" },
+    { background: "#eef4ff", color: "#365fc7" },
+    { background: "#fff2e8", color: "#b45309" },
+    { background: "#f5efff", color: "#6d28d9" },
+    { background: "#ecfdf3", color: "#15803d" },
+    { background: "#fff1f2", color: "#be123c" },
+    { background: "#eefbff", color: "#0369a1" },
+    { background: "#fff7ed", color: "#c2410c" },
+  ];
+
+  const hash = [...locationName].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const palette = palettes[hash % palettes.length];
+
+  return {
+    background: palette.background,
+    color: palette.color,
+    borderColor: `${palette.color}22`,
+  };
+}
+
 export function TripGridView({ initialTripData }: TripGridViewProps) {
   const [currentTripData] = useState<TripData>(() => {
     if (typeof window === "undefined") return initialTripData;
@@ -100,8 +127,8 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             }}
           >
             <div className="grid-day-top">
-              <span className="grid-day-date">{formatDate(day.date)}</span>
-              <span className="grid-day-chip">📍 {day.location.name}</span>
+              <span className="grid-day-date">{formatGridDayLabel(day.date, day.dayName)}</span>
+              <span className="grid-day-chip" style={getLocationTagStyle(day.location.name)}>📍 {day.location.name}</span>
             </div>
             <div className="grid-day-title">{day.title}</div>
             <div className="grid-day-summary">{day.summary}</div>
@@ -129,7 +156,7 @@ export function TripGridView({ initialTripData }: TripGridViewProps) {
             </div>
 
             <div className="day-modal-meta">
-              <span className="chip">📍 {activeDay.location.name}</span>
+              <span className="chip" style={getLocationTagStyle(activeDay.location.name)}>📍 {activeDay.location.name}</span>
               <span className="chip">{activeDay.location.region}</span>
               <span className="chip">{activeDay.travelMode}</span>
             </div>
