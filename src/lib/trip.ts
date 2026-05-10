@@ -211,6 +211,7 @@ const LOCATION_LOOKUP: Record<string, TripLocation> = {
   savannah: { name: "Savannah", lat: 32.0809, lng: -81.0912, region: "Georgia" },
   kennedy: { name: "Kennedy Space Center", lat: 28.5729, lng: -80.649, region: "Florida" },
   miami: { name: "Miami", lat: 25.7617, lng: -80.1918, region: "Florida" },
+  keys: { name: "Key West", lat: 24.5551, lng: -81.78, region: "Florida Keys" },
 };
 
 export const tripData = sanitizeTripData(tripDataJson as TripData);
@@ -657,6 +658,7 @@ function getDayLocation(dateStr: string, title: string, summary: string, segment
   let fallback = LOCATION_LOOKUP.orlando;
   if (text.includes("kennedy")) fallback = LOCATION_LOOKUP.kennedy;
   else if (text.includes("miami")) fallback = LOCATION_LOOKUP.miami;
+  else if (text.includes("key west") || text.includes("קי ווסט")) fallback = LOCATION_LOOKUP.keys;
   else if (text.includes("norfolk") || text.includes("cape charles")) fallback = LOCATION_LOOKUP.norfolk;
   else if (text.includes("outer banks") || text.includes("ocracoke")) fallback = LOCATION_LOOKUP.outer_banks;
   else if (text.includes("beaufort")) fallback = LOCATION_LOOKUP.beaufort;
